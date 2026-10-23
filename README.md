@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="Orb Logo" width="180" style="border-radius: 24px;" />
+  <img src="logo.png" alt="Orb Logo" width="130" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
 </p>
 
 <h1 align="center">Orb</h1>
@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com"><img src="https://img.shields.io/badge/version-1.0.0-teal?style=flat-square" alt="v1.0.0" /></a>
   <a href="https://github.com"><img src="https://img.shields.io/badge/macOS-13.0%2B-blue?style=flat-square&logo=apple&logoColor=white" alt="macOS 13.0+" /></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Swift-5.10-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.10" /></a>
   <a href="https://developer.apple.com/metal/"><img src="https://img.shields.io/badge/Renderer-Metal%20%2B%20SwiftUI-007AFF?style=flat-square" alt="Metal + SwiftUI" /></a>
@@ -23,8 +24,8 @@
 Orb transforms the static black camera notch on your MacBook Pro or MacBook Air into an elegant, interactive **Dynamic Island** with Apple Music synchronized karaoke lyrics, native calendar integration, floating lock screen media widgets, and optical liquid glass refraction.
 
 <p align="center">
-  <a href="dist/Orb-v2.0.0.dmg">
-    <img src="https://img.shields.io/badge/Download-Orb%20v2.0.0%20(DMG)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download Orb DMG" />
+  <a href="dist/Orb-v1.0.0.dmg">
+    <img src="https://img.shields.io/badge/Download-Orb%20v1.0.0%20(DMG)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download Orb DMG" />
   </a>
 </p>
 
@@ -50,7 +51,7 @@ Orb transforms the static black camera notch on your MacBook Pro or MacBook Air 
 
 ### 📅 Interactive Week Calendar
 - **Clickable Week Strip**: Click any day of the week to inspect scheduled events with illuminated accent glows.
-- **One-Click Event Launch**: Clicking an event opens Apple Calendar directly to that exact meeting (`calshow:`).
+- **One-Click Event Launch**: Clicking an event opens Apple Calendar directly to that exact meeting date view.
 - **Live Countdown Badges**: Real-time status tags (`"Now"`, `"in 15m"`, `"Tomorrow 10:00 AM"`).
 - **Quick Launch**: Header shortcut to jump straight into Calendar.app.
 
@@ -74,7 +75,7 @@ Orb transforms the static black camera notch on your MacBook Pro or MacBook Air 
 ## 🚀 Installation
 
 ### Option 1: Download Pre-Built DMG (Recommended)
-1. Download **[`Orb-v2.0.0.dmg`](dist/Orb-v2.0.0.dmg)** or grab the latest release from the [Releases](https://github.com) page.
+1. Download **[`Orb-v1.0.0.dmg`](dist/Orb-v1.0.0.dmg)** or grab the latest release from the [Releases](https://github.com) page.
 2. Open the DMG and drag **Orb.app** into your **Applications** folder.
 3. Launch Orb. Click the menu bar icon (`Orb`) and select **Settings...** (`⌘,`) to customize your preferences.
 
@@ -101,8 +102,8 @@ chmod +x build_release.sh
 
 The script compiles the application, ad-hoc codesigns it, and generates:
 - `dist/Orb.app` (Ready to run)
-- `dist/Orb-v2.0.0.dmg` (Installer disk image)
-- `dist/Orb-v2.0.0-macOS.zip` (Zip archive)
+- `dist/Orb-v1.0.0.dmg` (Installer disk image)
+- `dist/Orb-v1.0.0-macOS.zip` (Zip archive)
 
 #### Build via Xcode GUI
 1. Open `Orb.xcodeproj` in Xcode.

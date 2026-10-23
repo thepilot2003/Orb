@@ -5,9 +5,10 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${PROJECT_DIR}/build"
 DIST_DIR="${PROJECT_DIR}/dist"
 APP_NAME="Orb"
+APP_VERSION="1.0.0"
 SCHEME="Orb"
 
-echo "==> Building ${APP_NAME} in Release configuration..."
+echo "==> Building ${APP_NAME} v${APP_VERSION} in Release configuration..."
 rm -rf "${BUILD_DIR}" "${DIST_DIR}"
 mkdir -p "${DIST_DIR}"
 
@@ -32,7 +33,7 @@ codesign --force --deep --sign - "${DIST_DIR}/${APP_NAME}.app"
 
 echo "==> Creating Release Zip..."
 cd "${DIST_DIR}"
-zip -r -q -y "${APP_NAME}-v2.0.0-macOS.zip" "${APP_NAME}.app"
+zip -r -q -y "${APP_NAME}-v${APP_VERSION}-macOS.zip" "${APP_NAME}.app"
 
 echo "==> Creating Release DMG Installer..."
 DMG_STAGING="${BUILD_DIR}/dmg_staging"
@@ -43,7 +44,7 @@ ln -s /Applications "${DMG_STAGING}/Applications"
 hdiutil create -volname "${APP_NAME}" \
     -srcfolder "${DMG_STAGING}" \
     -ov -format UDZO \
-    "${DIST_DIR}/${APP_NAME}-v2.0.0.dmg"
+    "${DIST_DIR}/${APP_NAME}-v${APP_VERSION}.dmg"
 
 echo "==> Distribution artifacts ready in ${DIST_DIR}:"
 ls -lh "${DIST_DIR}"

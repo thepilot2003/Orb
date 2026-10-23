@@ -531,9 +531,7 @@ struct ContentView: View {
                         .foregroundColor(.gray)
                     Spacer()
                     Button("Open Calendar.app") {
-                        if let url = URL(string: "calshow:\(Date().timeIntervalSinceReferenceDate)") {
-                            NSWorkspace.shared.open(url)
-                        }
+                        state.openCalendar()
                     }
                     .buttonStyle(.plain)
                     .font(.system(size: 11, weight: .semibold))

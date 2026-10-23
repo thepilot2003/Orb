@@ -237,12 +237,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.center()
             settingsWindow = window
         }
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
+        guard let window = settingsWindow else { return }
+
+        // Temporarily raise to floating so it opens directly in front of any active app
+        window.level = .floating
+        window.center()
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+
+        // Force app activation over any currently focused apps
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Drop back to normal window level so it behaves as a standard window once visible
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            window.level = .normal
+            window.makeKey()
         }
-        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     func windowWillClose(_ notification: Notification) {

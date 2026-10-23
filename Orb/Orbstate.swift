@@ -1577,6 +1577,43 @@ final class OrbState: ObservableObject {
         }
     }
 
+    /// Safely opens Apple Calendar without deprecated or unsupported URL schemes.
+    func openCalendar(at date: Date? = nil) {
+        if let date = date {
+            let cal = Calendar.current
+            let year = cal.component(.year, from: date)
+            let month = cal.component(.month, from: date)
+            let day = cal.component(.day, from: date)
+            let script = """
+            tell application "Calendar"
+                activate
+                try
+                    set targetDate to current date
+                    set year of targetDate to \(year)
+                    set month of targetDate to \(month)
+                    set day of targetDate to \(day)
+                    switch view to day view
+                    view calendar at targetDate
+                on error
+                    activate
+                end try
+            end tell
+            """
+            DispatchQueue.global(qos: .userInitiated).async {
+                var error: NSDictionary?
+                if let appleScript = NSAppleScript(source: script) {
+                    appleScript.executeAndReturnError(&error)
+                }
+            }
+        } else {
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.iCal") {
+                NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+            } else {
+                NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+            }
+        }
+    }
+
     // MARK: Controls (only ever sent to the active, running player)
 
     private func send(_ command: String) {

@@ -1512,10 +1512,7 @@ struct CalendarPanel: View {
 
                 Button(action: {
                     state.haptic()
-                    let timestamp = (selectedDate ?? now).timeIntervalSinceReferenceDate
-                    if let url = URL(string: "calshow:\(timestamp)") {
-                        NSWorkspace.shared.open(url)
-                    }
+                    state.openCalendar(at: selectedDate ?? now)
                 }) {
                     Image(systemName: "calendar")
                         .font(.system(size: 11, weight: .semibold))
@@ -1614,10 +1611,7 @@ struct CalendarPanel: View {
                     Spacer()
                     Button(action: {
                         state.haptic()
-                        let timestamp = targetDate.timeIntervalSinceReferenceDate
-                        if let url = URL(string: "calshow:\(timestamp)") {
-                            NSWorkspace.shared.open(url)
-                        }
+                        state.openCalendar(at: targetDate)
                     }) {
                         Image(systemName: "plus")
                             .font(.system(size: 11, weight: .bold))
@@ -1634,10 +1628,7 @@ struct CalendarPanel: View {
                     ForEach(Array(displayedEvents.prefix(2))) { event in
                         Button(action: {
                             state.haptic()
-                            let timestamp = event.start.timeIntervalSinceReferenceDate
-                            if let url = URL(string: "calshow:\(timestamp)") {
-                                NSWorkspace.shared.open(url)
-                            }
+                            state.openCalendar(at: event.start)
                         }) {
                             eventRow(event, now: now)
                         }
