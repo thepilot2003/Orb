@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orb — Dynamic Island for your Mac Notch</title>
+  <meta name="description" content="A fluid, liquid-glass Dynamic Island designed natively for your MacBook notch. Real-time karaoke lyrics, calendar integration, lock screen media widget, and ultra-low battery consumption.">
+  <link rel="icon" type="image/png" href="logo_icon.png">
+  <style>
+    :root {
+      --bg: #070709;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.08);
+      --accent: #3bd6bf;
+      --accent-glow: rgba(59, 214, 191, 0.35);
+      --text: #f5f5f7;
+      --text-muted: #86868b;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Gradient Background Glows */
+    .glow-orb-top {
+      position: absolute;
+      top: -250px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(59, 214, 191, 0.16) 0%, rgba(20, 110, 180, 0.06) 50%, transparent 75%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 7, 9, 0.75);
+      border-bottom: 1px solid var(--card-border);
+      z-index: 100;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 100%;
+    }
+
+    .nav-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 19px;
+      letter-spacing: -0.5px;
+    }
+
+    .brand img {
+      width: 32px;
+      height: auto;
+      filter: drop-shadow(0 0 8px var(--accent-glow));
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .btn-small {
+      background: var(--text);
+      color: #000;
+      padding: 7px 16px;
+      border-radius: 980px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-small:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 80px auto 60px;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 980px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 24px;
+    }
+
+    .hero-badge span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    h1 {
+      font-size: 58px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(180deg, #ffffff 40%, rgba(255, 255, 255, 0.65) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 21px;
+      color: var(--text-muted);
+      max-width: 650px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+      letter-spacing: -0.2px;
+    }
+
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 50px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #3bd6bf 0%, #17a2b8 100%);
+      color: #061e1b;
+      padding: 14px 28px;
+      border-radius: 980px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 4px 24px var(--accent-glow);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(59, 214, 191, 0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      padding: 14px 26px;
+      border-radius: 980px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--card-border);
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Live Interactive Notch Mockup */
+    .mockup-container {
+      max-width: 820px;
+      margin: 0 auto 100px;
+      padding: 0 20px;
+      perspective: 1000px;
+    }
+
+    .macbook-bezel {
+      background: #111114;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px 20px 8px 8px;
+      padding: 12px 16px 24px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      position: relative;
+    }
+
+    .macbook-screen {
+      background: radial-gradient(circle at 50% 0%, #1a1e28 0%, #0c0e14 100%);
+      border-radius: 12px;
+      min-height: 380px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .mac-menubar {
+      width: 100%;
+      height: 32px;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+      position: relative;
+      z-index: 5;
+    }
+
+    /* Interactive Island Element */
+    .interactive-island {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      width: 180px;
+      height: 34px;
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .interactive-island:hover, .interactive-island.expanded {
+      width: 440px;
+      height: 180px;
+      background: rgba(14, 15, 18, 0.95);
+      backdrop-filter: blur(35px);
+      border-radius: 24px;
+      top: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 214, 191, 0.15);
+    }
+
+    .island-compact {
+      width: 100%;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      transition: opacity 0.2s;
+    }
+
+    .interactive-island:hover .island-compact,
+    .interactive-island.expanded .island-compact {
+      display: none;
+    }
+
+    .compact-art {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #ff2d55, #ff375f);
+    }
+
+    .compact-wave {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+
+    .compact-wave div {
+      width: 2.5px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite alternate;
+    }
+
+    .compact-wave div:nth-child(1) { height: 10px; animation-delay: 0.1s; }
+    .compact-wave div:nth-child(2) { height: 16px; animation-delay: 0.3s; }
+    .compact-wave div:nth-child(3) { height: 7px; animation-delay: 0.2s; }
+
+    @keyframes wave {
+      0% { height: 4px; }
+      100% { height: 16px; }
+    }
+
+    /* Island Expanded View */
+    .island-expanded {
+      display: none;
+      padding: 16px;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .interactive-island:hover .island-expanded,
+    .interactive-island.expanded .island-expanded {
+      display: flex;
+    }
+
+    .expanded-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .expanded-art {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ff2d55, #ff9500);
+      box-shadow: 0 4px 12px rgba(255, 45, 85, 0.3);
+    }
+
+    .expanded-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .expanded-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .expanded-artist {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .lyrics-row {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 6px 12px;
+      border-radius: 980px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #fff;
+      margin: 4px 0;
+    }
+
+    .lyrics-glow {
+      color: var(--accent);
+      text-shadow: 0 0 10px var(--accent);
+    }
+
+    .expanded-scrubber {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .scrubber-fill {
+      width: 42%;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .expanded-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      margin-top: 4px;
+    }
+
+    .ctrl-btn {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .ctrl-btn.play {
+      font-size: 22px;
+      color: #fff;
+    }
+
+    .hint-label {
+      position: absolute;
+      bottom: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* Features Grid */
+    .features-section {
+      max-width: 1080px;
+      margin: 0 auto 100px;
+      padding: 0 24px;
+    }
+
+    .section-title {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .section-sub {
+      text-align: center;
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 50px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 30px;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feature-card:hover {
+      background: var(--card-hover);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-3px);
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(59, 214, 191, 0.12);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Quick Build Block */
+    .code-block {
+      background: #0d0e12;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px 24px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13.5px;
+      color: #3bd6bf;
+      max-width: 620px;
+      margin: 0 auto 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 50px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-orb-top"></div>
+
+  <nav>
+    <div class="nav-container">
+      <a href="#" class="brand">
+        <img src="logo_icon.png" alt="Orb">
+        <span>Orb</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#build">Build from Source</a>
+        <a href="https://github.com" target="_blank">GitHub</a>
+        <a href="../dist/Orb-v2.0.0.dmg" class="btn-small">Download DMG</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-badge">
+        <span></span> Native macOS 13.0+ & Apple Silicon
+      </div>
+      <h1>A Dynamic Island for your MacBook notch.</h1>
+      <p class="hero-sub">
+        Transform your camera notch into an illuminated liquid-glass command center with synchronized Apple Music karaoke lyrics, interactive calendar, and desktop widgets.
+      </p>
+      <div class="hero-ctas">
+        <a href="../dist/Orb-v2.0.0.dmg" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.56-.69.94-1.64.83-2.6-.82.03-1.82.55-2.4 1.23-.52.6-.97 1.57-.85 2.5.91.07 1.86-.44 2.42-1.13Z"/></svg>
+          Download for Mac
+        </a>
+        <a href="https://github.com" class="btn-secondary" target="_blank">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </section>
+
+    <!-- Interactive Live Preview Mockup -->
+    <section class="mockup-container">
+      <div class="macbook-bezel">
+        <div class="macbook-screen">
+          <div class="mac-menubar">
+            <div><strong>Orb</strong> &nbsp; File &nbsp; Edit &nbsp; View &nbsp; Window &nbsp; Help</div>
+            <div>Fri Oct 23 &nbsp; 7:00 PM</div>
+          </div>
+
+          <!-- Hover to Expand Dynamic Island -->
+          <div class="interactive-island" id="interactiveNotch">
+            <!-- Compact Sneak Peek -->
+            <div class="island-compact">
+              <div class="compact-art"></div>
+              <div class="compact-wave">
+                <div></div><div></div><div></div>
+              </div>
+            </div>
+
+            <!-- Expanded Island Panel -->
+            <div class="island-expanded">
+              <div class="expanded-top">
+                <div class="expanded-art"></div>
+                <div class="expanded-meta">
+                  <div class="expanded-title">Starboy</div>
+                  <div class="expanded-artist">The Weeknd • Daft Punk</div>
+                </div>
+              </div>
+
+              <div class="lyrics-row">
+                <span>🎤</span>
+                <span>Look what you've done, <span class="lyrics-glow">I'm a motherfuckin' starboy</span></span>
+              </div>
+
+              <div>
+                <div class="expanded-scrubber">
+                  <div class="scrubber-fill"></div>
+                </div>
+                <div class="expanded-controls">
+                  <span class="ctrl-btn">⭐</span>
+                  <span class="ctrl-btn">⏮</span>
+                  <span class="ctrl-btn play">⏸</span>
+                  <span class="ctrl-btn">⏭</span>
+                  <span class="ctrl-btn">📑</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hint-label">Hover or tap the notch to expand</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features-section" id="features">
+      <h2 class="section-title">Crafted for macOS Sequoia & Apple Silicon</h2>
+      <p class="section-sub">Zero battery drain. Native Metal liquid glass. True paired intelligence.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="card-icon">🏝️</div>
+          <h3 class="card-title">Organic Notch Wrapping</h3>
+          <p class="card-desc">Seamlessly hugs the physical notch with fluid spring animations. Includes notch fine-tuning offsets for perfect pixel alignment on every MacBook model.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🎤</div>
+          <h3 class="card-title">Real-Time Karaoke Lyrics</h3>
+          <p class="card-desc">Synchronized lyric stream below the notch in compact mode and full Apple Music-style character glow illumination in the expanded island with vocal offset tuning.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🎛️</div>
+          <h3 class="card-title">Dead-Center Controls</h3>
+          <p class="card-desc">Mathematically balanced playback controls with quick-favorite star and interactive queue drawers on the flanks for effortless music control.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">📅</div>
+          <h3 class="card-title">Interactive Calendar Strip</h3>
+          <p class="card-desc">Clickable week view that filters scheduled events, highlights meeting countdowns, and opens Apple Calendar directly to any event with one click.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🪟</div>
+          <h3 class="card-title">Lock Screen Media Widget</h3>
+          <p class="card-desc">Translucent floating glass player directly on your macOS Lock Screen and multi-space desktop using native SkyLight window server layers.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">⚡</div>
+          <h3 class="card-title">Ultra-Low Battery Footprint</h3>
+          <p class="card-desc">Engineered in pure SwiftUI and Metal with debounced event loops. Consumes &lt; 0.2% idle CPU to ensure all-day battery performance.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Build from source -->
+    <section class="features-section" id="build" style="text-align: center;">
+      <h2 class="section-title">Build it Yourself in 10 Seconds</h2>
+      <p class="section-sub">100% open source under the MIT License.</p>
+      
+      <div class="code-block">
+        <span>git clone https://github.com/yourusername/Orb.git && cd Orb && ./build_release.sh</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Orb is an independent open-source project. Not affiliated with Apple Inc. macOS and Dynamic Island are trademarks of Apple Inc.</p>
+    <p style="margin-top: 10px;">Released under the <a href="https://github.com" target="_blank">MIT License</a> • 2026</p>
+  </footer>
+
+  <script>
+    const notch = document.getElementById('interactiveNotch');
+    notch.addEventListener('click', () => {
+      notch.classList.toggle('expanded');
+    });
+  </script>
+</body>
+</html>

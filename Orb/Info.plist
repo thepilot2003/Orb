@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Orb uses your calendar to display upcoming events and meetings directly in the dynamic island.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Orb uses your calendar to display upcoming events and meetings directly in the dynamic island.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Orb controls Apple Music and Spotify to display track information, album artwork, and playback controls.</string>
+</dict>
+</plist>
