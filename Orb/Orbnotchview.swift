@@ -54,9 +54,8 @@ struct AppleMusicKaraokeLyricView: View {
     var font: Font = .system(size: 13, weight: .bold, design: .rounded)
 
     private var progress: CGFloat {
-        let dur = max(line.endTime - line.time, 0.35)
-        let effectiveTime = currentTime + OrbState.shared.lyricsOffsetSeconds
-        let raw = (effectiveTime - line.time) / dur
+        let dur = max(line.endTime - line.time, 0.4)
+        let raw = (currentTime - line.time) / dur
         return CGFloat(min(max(raw, 0.0), 1.0))
     }
 
@@ -1714,20 +1713,21 @@ struct OrbMediaWidgetView: View {
     @ObservedObject var state = OrbState.shared
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 32, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
+
         ZStack {
-            // Luminous liquid glass background matching lock screen reference
-            VisualEffectBlur(material: .popover, blendingMode: .behindWindow)
+            // Frosted glass background with obsidian base (prevents underlying desktop text bleed-through)
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
                 .clipShape(shape)
 
-            shape.fill(Color.white.opacity(0.08))
+            shape.fill(Color(red: 0.10, green: 0.10, blue: 0.12).opacity(0.88))
 
             if let image = state.artworkImage, state.playback != .stopped {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .blur(radius: 40)
-                    .opacity(0.24)
+                    .blur(radius: 35)
+                    .opacity(0.22)
                     .clipShape(shape)
             }
 
@@ -1735,36 +1735,36 @@ struct OrbMediaWidgetView: View {
             shape.stroke(
                 LinearGradient(
                     stops: [
-                        Gradient.Stop(color: Color.white.opacity(0.45), location: 0.0),
+                        Gradient.Stop(color: Color.white.opacity(0.40), location: 0.0),
                         Gradient.Stop(color: Color.white.opacity(0.12), location: 0.35),
                         Gradient.Stop(color: Color.clear, location: 0.65),
-                        Gradient.Stop(color: Color.white.opacity(0.32), location: 1.0)
+                        Gradient.Stop(color: Color.white.opacity(0.22), location: 1.0)
                     ],
                     startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 1
             )
 
-            // Content matching reference image
-            VStack(spacing: 9) {
-                // Top Row: Artwork + Track Details + Waveform + Close button
+            // Content
+            VStack(spacing: 10) {
+                // Top Row: Artwork + Track Details + Waveform + Dismiss
                 HStack(spacing: 12) {
-                    ArtworkView(state: state, size: 50, corner: 13, bordered: true, showBadge: true)
+                    ArtworkView(state: state, size: 48, corner: 13, bordered: true, showBadge: true)
 
                     VStack(alignment: .leading, spacing: 2) {
                         if state.scrollLongNames {
                             MarqueeTextView(text: state.trackName,
-                                            font: .system(size: 15, weight: .bold, design: .rounded),
+                                            font: .system(size: 14.5, weight: .bold, design: .rounded),
                                             color: .white,
                                             scrollEnabled: true)
                         } else {
                             Text(state.trackName)
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 14.5, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                         }
                         Text(state.artistName)
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.80))
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.78))
                             .lineLimit(1)
                     }
 
@@ -1773,18 +1773,19 @@ struct OrbMediaWidgetView: View {
                     WaveformView(style: state.waveformStyle,
                                  color: state.color(for: state.waveformColor),
                                  isPlaying: state.playback == .playing,
-                                 width: 22, height: 16, barCount: 4)
+                                 width: 20, height: 15, barCount: 4)
 
                     Button(action: {
                         state.showMediaWidget = false
                     }) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(Color.white.opacity(0.5))
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(Color.white.opacity(0.6))
                             .frame(width: 18, height: 18)
-                            .background(Circle().fill(Color.white.opacity(0.10)))
+                            .background(Circle().fill(Color.white.opacity(0.12)))
                     }
                     .buttonStyle(.plain)
+                    .help("Hide widget on desktop")
                 }
 
                 // Middle Row: Scrubber with timestamps
@@ -1795,13 +1796,13 @@ struct OrbMediaWidgetView: View {
 
                     HStack(spacing: 8) {
                         Text(OrbState.format(pos))
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.85))
-                            .frame(width: 30, alignment: .leading)
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.80))
+                            .frame(width: 28, alignment: .leading)
 
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.20))
+                                Capsule().fill(Color.white.opacity(0.18))
                                 Capsule().fill(Color.white.opacity(0.95))
                                     .frame(width: max(4.5, geo.size.width * CGFloat(fraction)))
                             }
@@ -1819,19 +1820,19 @@ struct OrbMediaWidgetView: View {
                         .frame(height: 12)
 
                         Text(OrbState.format(dur))
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.85))
-                            .frame(width: 30, alignment: .trailing)
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.80))
+                            .frame(width: 28, alignment: .trailing)
                     }
                 }
 
                 // Bottom Row: Clean borderless glyph controls
-                HStack(spacing: 34) {
+                HStack(spacing: 0) {
                     Button(action: { state.toggleFavorite() }) {
                         Image(systemName: state.isFavorited ? "star.fill" : "star")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(state.isFavorited ? Color(hex: "#FFD60A") : Color.white.opacity(0.85))
-                            .frame(width: 24, height: 24)
+                            .frame(width: 28, height: 28)
                     }
                     .buttonStyle(OrbPressStyle())
 
@@ -1842,31 +1843,35 @@ struct OrbMediaWidgetView: View {
                         state.skipPrevious()
                     }) {
                         Image(systemName: "backward.fill")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 32, height: 30)
+                            .frame(width: 34, height: 30)
                     }
                     .buttonStyle(OrbPressStyle())
+
+                    Spacer()
 
                     Button(action: {
                         state.haptic()
                         state.togglePlayPause()
                     }) {
                         Image(systemName: state.playback == .playing ? "pause.fill" : "play.fill")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(width: 38, height: 34)
+                            .frame(width: 44, height: 34)
                     }
                     .buttonStyle(OrbPressStyle())
+
+                    Spacer()
 
                     Button(action: {
                         state.haptic()
                         state.skipNext()
                     }) {
                         Image(systemName: "forward.fill")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 32, height: 30)
+                            .frame(width: 34, height: 30)
                     }
                     .buttonStyle(OrbPressStyle())
 
@@ -1879,7 +1884,7 @@ struct OrbMediaWidgetView: View {
                         Image(systemName: "display")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(Color.white.opacity(0.85))
-                            .frame(width: 24, height: 24)
+                            .frame(width: 28, height: 28)
                     }
                     .buttonStyle(OrbPressStyle())
                 }
@@ -1887,7 +1892,8 @@ struct OrbMediaWidgetView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .frame(width: 350, height: 140)
-        .shadow(color: Color.black.opacity(0.35), radius: 18, y: 8)
+        .frame(width: 388, height: 148)
+        .shadow(color: Color.black.opacity(0.35), radius: 14, y: 6)
+        .padding(16)
     }
 }

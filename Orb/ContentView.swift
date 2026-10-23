@@ -593,17 +593,21 @@ struct ContentView: View {
     private var advancedTab: some View {
         VStack(spacing: 16) {
             SettingsCard("Lock Screen & Desktop Widget", icon: "macwindow.on.rectangle") {
-                toggleRow("Show media widget",
-                          detail: "A floating translucent glass player card matching the macOS lock screen design.",
+                toggleRow("Show on Lock Screen",
+                          detail: "Displays the translucent liquid glass media player directly on your macOS Lock Screen.",
+                          isOn: $state.showLockScreenWidget)
+
+                toggleRow("Show on Desktop",
+                          detail: "Keeps a floating liquid glass player card on your desktop that you can drag anywhere.",
                           isOn: $state.showMediaWidget)
 
                 toggleRow("Float above all apps",
-                          detail: "Keeps the widget floating on top of all windows across every Space.",
+                          detail: "Keeps the desktop widget floating on top of all windows across every Space.",
                           isOn: $state.mediaWidgetAboveApps)
                     .disabled(!state.showMediaWidget)
                     .opacity(state.showMediaWidget ? 1 : 0.4)
 
-                Button("Center widget on Screen") {
+                Button("Reset Widget Position") {
                     UserDefaults.standard.removeObject(forKey: "orbWidgetX")
                     UserDefaults.standard.removeObject(forKey: "orbWidgetY")
                     NotificationCenter.default.post(name: Notification.Name("orbCenterWidget"), object: nil)
@@ -611,8 +615,6 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(orbTeal)
-                .disabled(!state.showMediaWidget)
-                .opacity(state.showMediaWidget ? 1 : 0.4)
             }
 
             SettingsCard("Haptic Feedback", icon: "hand.tap.fill") {

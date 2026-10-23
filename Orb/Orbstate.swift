@@ -429,6 +429,9 @@ final class OrbState: ObservableObject {
     }
 
     // Desktop / Lock Screen Media Widget
+    @Published var showLockScreenWidget: Bool = Prefs.bool("showLockScreenWidget", true) {
+        didSet { UserDefaults.standard.set(showLockScreenWidget, forKey: "showLockScreenWidget") }
+    }
     @Published var showMediaWidget: Bool = Prefs.bool("showMediaWidget", true) {
         didSet { UserDefaults.standard.set(showMediaWidget, forKey: "showMediaWidget") }
     }
@@ -554,6 +557,12 @@ final class OrbState: ObservableObject {
         if let idx = lyrics.lastIndex(where: { $0.time <= pos }) {
             let line = lyrics[idx]
             let nextTime = (idx + 1 < lyrics.count) ? lyrics[idx + 1].time : (line.endTime + 5.0)
+            let timeUntilNext = nextTime - pos
+            // If the vocal phrase concluded and an instrumental break exists (>= 1.8s),
+            // yield nil so the view renders the Apple Music intro/instrumental dots!
+            if pos >= line.endTime + 0.9 && timeUntilNext >= 1.8 {
+                return nil
+            }
             if pos < nextTime {
                 return (line, idx)
             }
@@ -1077,7 +1086,7 @@ final class OrbState: ObservableObject {
 
     private func lrclibRequest(url: URL) -> URLRequest {
         var req = URLRequest(url: url)
-        req.setValue("Orb/2.0 (macOS; DynamicIslandApp)", forHTTPHeaderField: "User-Agent")
+        req.setValue("Orb/1.0.0 (macOS; DynamicIslandApp)", forHTTPHeaderField: "User-Agent")
         req.timeoutInterval = 7.0
         return req
     }
@@ -1322,7 +1331,7 @@ final class OrbState: ObservableObject {
                 var fraction: Double = 0
                 if match.range(at: 3).location != NSNotFound {
                     let fracStr = nsLine.substring(with: match.range(at: 3))
-                    let div = fracStr.count == 3 ? 1000.0 : 100.0
+                    let div = fracStr.count == 3 ? 1000.0 : (fracStr.count == 1 ? 10.0 : 100.0)
                     fraction = (Double(fracStr) ?? 0) / div
                 }
                 let total = (Double(minStr) ?? 0) * 60.0 + (Double(secStr) ?? 0) + fraction + (offsetMs / 1000.0)
@@ -1353,12 +1362,16 @@ final class OrbState: ObservableObject {
             let nextT = (i + 1 < sorted.count) ? sorted[i + 1].time : (songDuration > t ? songDuration : t + 4.5)
             let gap = max(0.6, nextT - t)
 
-            // Realistic vocal duration based on words and characters
+            // Realistic vocal duration matching normal musical phrasing
             let text = sorted[i].text
             let words = max(1, text.split(separator: " ").count)
-            let charCount = max(4, text.count)
-            let estimatedVocalDuration = max(1.2, min(Double(words) * 0.45, Double(charCount) * 0.14))
-            let vocalDuration = min(estimatedVocalDuration, max(0.5, gap - 0.25))
+            let vocalDuration: Double
+            if gap <= 4.5 {
+                vocalDuration = max(1.2, gap - 0.35)
+            } else {
+                let estimated = max(1.8, min(Double(words) * 0.58, gap - 1.2))
+                vocalDuration = min(estimated, 6.5)
+            }
 
             let endTime = t + vocalDuration
             result.append(LyricLine(time: t, endTime: endTime, text: text))

@@ -40,6 +40,18 @@ final class OrbMediaWidgetPanel: NSPanel {
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+        super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
+        NotificationCenter.default.addObserver(self, selector: #selector(didMove), name: NSWindow.didMoveNotification, object: self)
+    }
+
+    @objc private func didMove() {
+        if !(AppDelegate.shared?.isScreenLocked ?? false) {
+            UserDefaults.standard.set(Double(frame.origin.x), forKey: "orbWidgetX")
+            UserDefaults.standard.set(Double(frame.origin.y), forKey: "orbWidgetY")
+        }
+    }
 }
 
 // MARK: - SkyLight Window Server Operator for Lock Screen Display
@@ -110,7 +122,9 @@ public final class SkyLightOperator {
 
     public func delegateWindow(_ window: NSWindow) {
         guard let fn = SLSSpaceAddWindowsAndRemoveFromSpaces, connection != 0, space != 0 else { return }
-        _ = fn(connection, space, [window.windowNumber] as CFArray, 7)
+        let winNum = window.windowNumber
+        guard winNum > 0 else { return }
+        _ = fn(connection, space, [winNum] as CFArray, 7)
     }
 }
 
@@ -122,6 +136,8 @@ final class OrbHostingView<Content: View>: NSHostingView<Content> {
 // MARK: - App delegate
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    private(set) static var shared: AppDelegate?
+    private(set) var isScreenLocked: Bool = false
     private(set) var notchPanel: OrbNotchPanel!
     private var mediaWidgetPanel: OrbMediaWidgetPanel?
     private var settingsWindow: NSWindow?
@@ -133,8 +149,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // Big enough for the open island plus its shadow, small enough not to cover much of the menu bar.
     private let canvasSize = NSSize(width: 560, height: 360)
+    private let mediaWidgetSize = NSSize(width: 420, height: 180)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppDelegate.shared = self
         // No Dock icon by default until Settings is opened
         NSApp.setActivationPolicy(.accessory)
         setupAppIcon()
@@ -169,6 +187,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         installMouseMonitors()
         observeSettings()
 
+        // Setup desktop widget if enabled
+        if OrbState.shared.showMediaWidget {
+            setupMediaWidget()
+        }
+
         NotificationCenter.default.addObserver(forName: Notification.Name("orbOpenSettings"), object: nil, queue: .main) { [weak self] _ in
             self?.showSettings()
         }
@@ -187,6 +210,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                               name: NSWorkspace.didActivateApplicationNotification, object: nil)
         workspace.addObserver(self, selector: #selector(repositionOrb),
                               name: NSWorkspace.screensDidWakeNotification, object: nil)
+
+        // Lock screen and wake observers for widget
+        let dnc = DistributedNotificationCenter.default()
+        dnc.addObserver(self, selector: #selector(handleScreenLocked), name: Notification.Name("com.apple.screenIsLocked"), object: nil)
+        dnc.addObserver(self, selector: #selector(handleScreenUnlocked), name: Notification.Name("com.apple.screenIsUnlocked"), object: nil)
+        workspace.addObserver(self, selector: #selector(handleScreenUnlocked), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+        workspace.addObserver(self, selector: #selector(handleScreenGeometryChange), name: NSWorkspace.screensDidWakeNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleScreenGeometryChange), name: NSApplication.didChangeScreenParametersNotification, object: nil)
+
+        NotificationCenter.default.addObserver(forName: Notification.Name("orbCenterWidget"), object: nil, queue: .main) { [weak self] _ in
+            self?.centerMediaWidget()
+        }
 
         // Low-frequency fallback timer (workspace observers do the instant work).
         visibilityTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { [weak self] _ in
@@ -283,8 +318,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 guard let self = self else { return }
                 if show {
                     if self.mediaWidgetPanel == nil { self.setupMediaWidget() }
-                    self.mediaWidgetPanel?.orderFrontRegardless()
-                } else {
+                    if !self.isScreenLocked {
+                        let above = OrbState.shared.mediaWidgetAboveApps
+                        self.mediaWidgetPanel?.level = above ? .floating : (.statusBar - 1)
+                        self.mediaWidgetPanel?.orderFrontRegardless()
+                    }
+                } else if !self.isScreenLocked {
                     self.mediaWidgetPanel?.orderOut(nil)
                 }
             }
@@ -293,13 +332,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         OrbState.shared.$mediaWidgetAboveApps
             .receive(on: DispatchQueue.main)
             .sink { [weak self] above in
-                self?.mediaWidgetPanel?.level = above ? .floating : (.statusBar - 1)
+                guard let self = self, !self.isScreenLocked else { return }
+                self.mediaWidgetPanel?.level = above ? .floating : (.statusBar - 1)
             }
             .store(in: &cancellables)
     }
 
     private func setupMediaWidget() {
-        let size = NSSize(width: 350, height: 140)
+        if let existing = mediaWidgetPanel {
+            if isScreenLocked {
+                existing.canBecomeVisibleWithoutLogin = true
+                existing.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+                existing.orderFrontRegardless()
+                SkyLightOperator.shared.delegateWindow(existing)
+            }
+            return
+        }
+
+        let size = mediaWidgetSize
         let panel = OrbMediaWidgetPanel(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -308,7 +358,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         )
         // High window level and canBecomeVisibleWithoutLogin are required for lock screen display
         panel.canBecomeVisibleWithoutLogin = true
-        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         panel.backgroundColor = .clear
         panel.isOpaque = false
@@ -317,7 +366,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
 
-        let hostingView = NSHostingView(rootView: OrbMediaWidgetView())
+        let above = OrbState.shared.mediaWidgetAboveApps
+        panel.level = isScreenLocked ? NSWindow.Level(rawValue: Int(CGShieldingWindowLevel())) : (above ? .floating : (.statusBar - 1))
+
+        let hostingView = OrbHostingView(rootView: OrbMediaWidgetView())
         hostingView.frame = NSRect(origin: .zero, size: size)
         hostingView.autoresizingMask = [.width, .height]
         panel.contentView = hostingView
@@ -325,43 +377,96 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let screen = NSScreen.main {
             let savedX = UserDefaults.standard.double(forKey: "orbWidgetX")
             let savedY = UserDefaults.standard.double(forKey: "orbWidgetY")
-            // Default position matches the reference lock screen image: centered horizontally, slightly above mid-height
             let x = savedX > 0 ? CGFloat(savedX) : screen.frame.midX - size.width / 2
             let y = savedY > 0 ? CGFloat(savedY) : screen.frame.midY - size.height / 2 + 50
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
-        // Delegate window to ScreenLock CGS space via SkyLight
+        panel.orderFrontRegardless()
         SkyLightOperator.shared.delegateWindow(panel)
 
         mediaWidgetPanel = panel
+    }
 
-        // Listen for lock screen activation so the widget stays displayed on the Lock Screen
-        let dnc = DistributedNotificationCenter.default()
-        dnc.addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
-            guard let self = self, let panel = self.mediaWidgetPanel else { return }
-            if OrbState.shared.showMediaWidget {
-                SkyLightOperator.shared.delegateWindow(panel)
-                panel.orderFrontRegardless()
-            }
-        }
+    @objc private func handleScreenLocked() {
+        guard !isScreenLocked else { return }
+        isScreenLocked = true
 
-        dnc.addObserver(forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
-            guard let self = self, let panel = self.mediaWidgetPanel else { return }
-            if OrbState.shared.showMediaWidget {
-                panel.orderFrontRegardless()
-            }
-        }
+        guard OrbState.shared.showLockScreenWidget || OrbState.shared.showMediaWidget else { return }
 
-        NotificationCenter.default.addObserver(forName: Notification.Name("orbCenterWidget"), object: nil, queue: .main) { [weak self] _ in
-            guard let self = self, let screen = NSScreen.main, let panel = self.mediaWidgetPanel else { return }
-            let size = NSSize(width: 350, height: 140)
-            let x = screen.frame.midX - size.width / 2
-            let y = screen.frame.midY - size.height / 2 + 50
+        if mediaWidgetPanel == nil { setupMediaWidget() }
+        guard let panel = mediaWidgetPanel else { return }
+
+        panel.canBecomeVisibleWithoutLogin = true
+        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+
+        if let screen = NSScreen.main {
+            let size = panel.frame.size
+            let savedX = UserDefaults.standard.double(forKey: "orbWidgetX")
+            let savedY = UserDefaults.standard.double(forKey: "orbWidgetY")
+            let x = savedX > 0 ? CGFloat(savedX) : screen.frame.midX - size.width / 2
+            let y = savedY > 0 ? CGFloat(savedY) : screen.frame.midY - size.height / 2 + 50
             panel.setFrameOrigin(NSPoint(x: x, y: y))
-            SkyLightOperator.shared.delegateWindow(panel)
-            panel.orderFrontRegardless()
         }
+
+        panel.orderFrontRegardless()
+        SkyLightOperator.shared.delegateWindow(panel)
+    }
+
+    @objc private func handleScreenUnlocked() {
+        guard isScreenLocked else { return }
+        isScreenLocked = false
+
+        guard let panel = mediaWidgetPanel else { return }
+
+        if OrbState.shared.showMediaWidget {
+            let above = OrbState.shared.mediaWidgetAboveApps
+            panel.level = above ? .floating : (.statusBar - 1)
+            panel.orderFrontRegardless()
+        } else {
+            panel.orderOut(nil)
+        }
+    }
+
+    @objc private func handleScreenGeometryChange() {
+        guard let panel = mediaWidgetPanel, panel.isVisible else { return }
+        guard let screen = NSScreen.main else { return }
+
+        let screenFrame = screen.visibleFrame
+        var origin = panel.frame.origin
+        if origin.x < screenFrame.minX - 50 || origin.x > screenFrame.maxX - 100 {
+            origin.x = screenFrame.midX - panel.frame.width / 2
+        }
+        if origin.y < screenFrame.minY - 50 || origin.y > screenFrame.maxY - 100 {
+            origin.y = screenFrame.midY - panel.frame.height / 2 + 50
+        }
+        panel.setFrameOrigin(origin)
+
+        if isScreenLocked {
+            panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+            panel.orderFrontRegardless()
+            SkyLightOperator.shared.delegateWindow(panel)
+        }
+    }
+
+    private func centerMediaWidget() {
+        guard let screen = NSScreen.main else { return }
+        if mediaWidgetPanel == nil { setupMediaWidget() }
+        guard let panel = mediaWidgetPanel else { return }
+
+        let size = panel.frame.size
+        let x = screen.frame.midX - size.width / 2
+        let y = screen.frame.midY - size.height / 2 + 50
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        UserDefaults.standard.set(Double(x), forKey: "orbWidgetX")
+        UserDefaults.standard.set(Double(y), forKey: "orbWidgetY")
+
+        if isScreenLocked {
+            panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+            SkyLightOperator.shared.delegateWindow(panel)
+        }
+        panel.orderFrontRegardless()
     }
 
     // MARK: Positioning (always on the notched display, not just NSScreen.main)
