@@ -5,6 +5,15 @@ All notable changes to the Orb project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.03] - 2026-10-24
+
+### Fixed
+- **Sub-Pixel Notch Centering**: Fixed an AppKit `NSHostingView` leading-edge layout constraint that caused the Dynamic Island to render ~76–124pt to the left of the physical MacBook camera cutout. The island is now locked dead-center to `(auxiliaryTopLeftArea.maxX + auxiliaryTopRightArea.minX) / 2.0`.
+- **Notch Height Calibration**: Calibrated hardware notch depth to 34pt, eliminating the 3.5pt black overhanging lip on M2/M3 MacBook Air screens.
+- **Companion Grounding**: Anchored Notch Pet right at `notchBottom + 1`, preventing mid-air hovering and camera bezel clipping.
+- **Spider Silk Physics**: Replaced coordinate position offsets with relative anchored geometry so the silk thread and anchor knot drop directly from the notch rim.
+- **Settings Layout**: Widened Settings window to 680px with `.lineLimit(1)` on tabs, preventing hyphenated tab wrapping.
+
 ## [1.02] - 2026-10-24
 
 ### Added

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com"><img src="https://img.shields.io/badge/version-1.02-teal?style=flat-square" alt="v1.02" /></a>
+  <a href="https://github.com"><img src="https://img.shields.io/badge/version-1.03-teal?style=flat-square" alt="v1.03" /></a>
   <a href="https://github.com"><img src="https://img.shields.io/badge/macOS-13.0%2B-blue?style=flat-square&logo=apple&logoColor=white" alt="macOS 13.0+" /></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Swift-5.10-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.10" /></a>
   <a href="https://developer.apple.com/metal/"><img src="https://img.shields.io/badge/Renderer-Metal%20%2B%20SwiftUI-007AFF?style=flat-square" alt="Metal + SwiftUI" /></a>
@@ -24,8 +24,8 @@
 Orb transforms the static black camera notch on your MacBook Pro or MacBook Air into an elegant, interactive **Dynamic Island** with real-time Apple Music synchronized karaoke lyrics, native calendar schedule integration, liquid glass refraction, and an adorable **Animated Notch Pet Companion** featuring 5 unique pets, a 19-piece wardrobe boutique, live feeding snacks, and music-reactive behaviors!
 
 <p align="center">
-  <a href="dist/Orb-v1.02.dmg">
-    <img src="https://img.shields.io/badge/Download-Orb%20v1.02%20(DMG)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download Orb DMG" />
+  <a href="dist/Orb-v1.03.dmg">
+    <img src="https://img.shields.io/badge/Download-Orb%20v1.03%20(DMG)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download Orb DMG" />
   </a>
 </p>
 
@@ -82,16 +82,21 @@ Orb is organized into clean, modular Swift domains:
 Orb/
 ├── Pet/
 │   ├── PetModels.swift           # NotchPetType, PetHat, PetOutfit, PetTreat, PetAction enums
-│   ├── PetManager.swift          # Autonomous ObservableObject brain (IOKit, Key monitor, Pomodoro)
-│   ├── NotchPetSprites.swift     # High-fidelity vector sprites (Cat, Dog, Duck, Spider, Orb)
-│   ├── NotchPetWardrobe.swift    # 19 hats, outfits, DJ headphones, laptops, battery snacks
-│   └── NotchPetView.swift        # Notch anchor positioning, silk threads, speech bubbles
+│   ├── NotchPetManager.swift     # Autonomous brain (IOKit, typing companion, Pomodoro, sleep)
+│   ├── NotchPetRenderer.swift    # High-fidelity vector sprites & 3D shaded pet characters
+│   ├── NotchPetWardrobe.swift    # 19 custom-fitted hats, outfits, DJ headphones, laptops, battery snacks
+│   └── NotchPetView.swift        # Notch anchor positioning, silk bungee, speech bubbles & treat drops
+├── Views/
+│   ├── OrbNotchView.swift        # Main Dynamic Island container & alignment coordinator
+│   ├── IslandBackground.swift    # Liquid glass shaders, NSGlassEffectView, motion artwork looper
+│   ├── MusicPlayerView.swift     # Symmetrical centered player, Compact & Now Playing panels, waveforms
+│   ├── LyricsView.swift          # LRCLIB synced karaoke lyrics, syllable glow sweep, intro dots
+│   └── CalendarView.swift        # Interactive clickable 7-day strip & meeting deep links
 ├── Settings/
 │   └── PetSettingsTab.swift      # Dedicated Notch Pet companion settings & feeding station
-├── ContentView.swift             # Settings window & navigation tabs
-├── OrbApp.swift                  # NSPanel lifecycle, hover geometry & activation policy
-├── Orbnotchview.swift            # Dynamic Island layout, liquid glass shaders & panels
-└── Orbstate.swift                # Playback state, LRCLIB sync engine, EventKit store
+├── ContentView.swift             # 6-tab settings window & preference bindings
+├── OrbApp.swift                  # NSPanel lifecycle, hover monitors & activation policy
+└── Orbstate.swift                # Playback state, audio detection & EventKit store
 ```
 
 ---
@@ -99,7 +104,7 @@ Orb/
 ## 📦 Installation & Download
 
 ### Option 1: Download Pre-Built DMG (Recommended)
-1. Download **[`Orb-v1.02.dmg`](dist/Orb-v1.02.dmg)** or grab the latest release from the [Releases](https://github.com) page.
+1. Download **[`Orb-v1.03.dmg`](dist/Orb-v1.03.dmg)** or grab the latest release from the [Releases](https://github.com) page.
 2. Open the DMG and drag **Orb.app** into your **Applications** folder.
 3. Launch Orb. Click the menu bar icon (`Orb`) and select **Settings...** (`⌘,`) to customize your preferences.
 
@@ -118,7 +123,7 @@ Orb/
 Clone the repository and run the automated release builder:
 
 ```bash
-git clone https://github.com/yourusername/Orb.git
+git clone https://github.com/thepilot2003/Orb.git
 cd Orb
 chmod +x build_release.sh
 ./build_release.sh
@@ -126,8 +131,8 @@ chmod +x build_release.sh
 
 The script compiles the application, ad-hoc codesigns it, and generates:
 - `dist/Orb.app` (Ready to run)
-- `dist/Orb-v1.02.dmg` (Installer disk image)
-- `dist/Orb-v1.02-macOS.zip` (Zip archive)
+- `dist/Orb-v1.03.dmg` (Installer disk image)
+- `dist/Orb-v1.03-macOS.zip` (Zip archive)
 
 ---
 
