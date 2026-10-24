@@ -1,0 +1,45 @@
+# Changelog
+
+All notable changes to the Orb project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.02] - 2026-10-24
+
+### Added
+- **Notch Pet Companion Expansion**:
+  - Added new **Spider Companion (Webby)** with 8-legged crawl, shiny anime eyes, and silk bungee line.
+  - Added **Wardrobe & Clothes System** featuring 11 hats (DJ Headphones, Sunglasses, Rain Hat, Winter Beanie, Santa Hat, Party Hat, Wizard Hat, Crown, Cowboy Hat, Flower) and 7 outfits (Raincoat, Cozy Sweater, Hero Cape, Bowtie, Mini Laptop, Pom-Poms).
+  - Added **Feeding & Treats System** with favorite snacks (Fish for Cat, Bone for Dog, Bread for Duck, Fly for Spider, Star Candy for Orb).
+  - Added **Mini DJ Headphones** automatically worn during music playback.
+  - Added **Karaoke Singing Companion** synced with lyric vocal phrases.
+  - Added **Adaptive Dance Routines** calibrated to track tempo.
+  - Added **MagSafe Battery Snack** reaction when charging.
+  - Added **Typing / Work Companion** cheering you on during rapid coding.
+  - Added **Pomodoro Break & Hydration Reminders**.
+  - Added **Weather Reactions** (Raincoat in rain, Beanie in cold, Sunglasses in sun).
+  - Added dedicated **Notch Pet** tab in Settings.
+- **Repository Architecture**:
+  - Restructured codebase into clean, modular domain directories (`Core`, `Models`, `Pet`, `Views`, `Settings`, `State`).
+  - Added GitHub Actions CI workflow, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
+
+### Fixed
+- Fixed pet vertical positioning and sizing so it is fully visible beneath the MacBook notch curve without clipping.
+
+## [1.01] - 2026-10-24
+
+### Added
+- Animated Notch Pet Companion foundation with Cat, Dog, Duck, and Orb companions.
+- Walking, idle, sleeping, and petting interactions.
+
+### Removed
+- Cleanly removed experimental desktop and lock screen widget.
+
+## [1.0.0] - 2026-10-23
+
+### Initial Release
+- Hardware notch expansion with Apple Music & Spotify integration.
+- Apple Music style karaoke lyrics with character glow wipe.
+- Dynamic Island calendar integration.
+- Liquid glass shader effects and native haptic feedback.

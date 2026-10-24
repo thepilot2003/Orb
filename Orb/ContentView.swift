@@ -6,6 +6,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case appearance = "Appearance"
     case dynamicIsland = "Island"
     case mediaLyrics = "Media & Lyrics"
+    case pet = "Notch Pet"
     case calendar = "Calendar"
     case advanced = "Advanced"
 
@@ -16,13 +17,14 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .appearance: return "sparkles"
         case .dynamicIsland: return "capsule.portrait.fill"
         case .mediaLyrics: return "music.note"
+        case .pet: return "pawprint.fill"
         case .calendar: return "calendar"
         case .advanced: return "gearshape.fill"
         }
     }
 }
 
-private struct SettingsCard<Content: View>: View {
+struct SettingsCard<Content: View>: View {
     let title: String
     let icon: String
     let content: Content
@@ -92,6 +94,8 @@ struct ContentView: View {
                         islandTab
                     case .mediaLyrics:
                         mediaLyricsTab
+                    case .pet:
+                        PetSettingsTab()
                     case .calendar:
                         calendarTab
                     case .advanced:
@@ -592,50 +596,6 @@ struct ContentView: View {
 
     private var advancedTab: some View {
         VStack(spacing: 16) {
-            SettingsCard("Notch Pet Companion", icon: "pawprint.fill") {
-                toggleRow("Show notch pet",
-                          detail: "An adorable animated companion that lives and walks along your MacBook notch.",
-                          isOn: $state.showNotchPet)
-
-                if state.showNotchPet {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Companion Type")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.gray)
-
-                        segmented($state.petType)
-
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Activity Level")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.gray)
-                                Text("Controls how often \(state.petType.defaultName) explores and walks along the notch.")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.gray.opacity(0.8))
-                            }
-                            Spacer()
-                        }
-
-                        segmented($state.petActivity)
-
-                        HStack {
-                            Text("\(state.petType.defaultName) is currently \(state.petAction.rawValue)...")
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.75))
-                            Spacer()
-                            Button("Pet \(state.petType.defaultName) ❤️") {
-                                state.petInteracted()
-                            }
-                            .buttonStyle(.plain)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(orbTeal)
-                        }
-                        .padding(.top, 2)
-                    }
-                }
-            }
-
             SettingsCard("Haptic Feedback", icon: "hand.tap.fill") {
                 segmented($state.hapticLevel)
                 HStack {

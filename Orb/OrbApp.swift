@@ -244,7 +244,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let state = OrbState.shared
         let margin: CGFloat = state.isExpanded ? 16 : 4
         let width = state.currentNotchWidth + 20 + margin * 2
-        let height = state.currentNotchHeight + margin
+        var height = state.currentNotchHeight + margin
+        if state.showNotchPet {
+            height += 48
+        }
 
         // Instant fast exit when cursor is not near the notch (saves CPU on 95% of movements)
         guard mouse.y >= frame.maxY - (height + 30) else { return false }
