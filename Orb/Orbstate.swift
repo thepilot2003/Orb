@@ -1004,8 +1004,22 @@ final class OrbState: ObservableObject {
 
     // MARK: - Synchronized Lyrics & Motion Artwork Cache
 
-    private var lyricsCache: [String: [LyricLine]] = [:]
-    private var motionArtworkCache: [String: URL] = [:]
+    private var lyricsCache: [String: [LyricLine]] = [:] {
+        didSet {
+            if lyricsCache.count > 35 {
+                let keysToRemove = Array(lyricsCache.keys.prefix(10))
+                for k in keysToRemove { lyricsCache.removeValue(forKey: k) }
+            }
+        }
+    }
+    private var motionArtworkCache: [String: URL] = [:] {
+        didSet {
+            if motionArtworkCache.count > 30 {
+                let keysToRemove = Array(motionArtworkCache.keys.prefix(10))
+                for k in keysToRemove { motionArtworkCache.removeValue(forKey: k) }
+            }
+        }
+    }
 
     private func cleanLyricsComponent(_ text: String) -> String {
         var t = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1085,7 +1099,7 @@ final class OrbState: ObservableObject {
 
     private func lrclibRequest(url: URL) -> URLRequest {
         var req = URLRequest(url: url)
-        req.setValue("Orb/1.02 (macOS; DynamicIslandApp)", forHTTPHeaderField: "User-Agent")
+        req.setValue("Orb/1.05 (macOS; DynamicIslandApp)", forHTTPHeaderField: "User-Agent")
         req.timeoutInterval = 7.0
         return req
     }
@@ -1686,6 +1700,61 @@ final class OrbState: ObservableObject {
     }
 
     private func fetchQueue(title: String, artist: String) {
+        // 1. If Apple Music is active, query real playlist upcoming tracks
+        if activeSource == .music {
+            scriptQueue.async { [weak self] in
+                guard let self = self else { return }
+                let script = """
+                tell application id "com.apple.Music"
+                    try
+                        set curIdx to index of current track
+                        set trackList to tracks of current playlist
+                        set total to count of trackList
+                        set out to ""
+                        set c to 0
+                        repeat with i from (curIdx + 1) to total
+                            if c < 6 then
+                                set t to item i of trackList
+                                set out to out & (name of t) & "|||" & (artist of t) & "|||" & (duration of t) & "///"
+                                set c to c + 1
+                            end if
+                        end repeat
+                        return out
+                    on error
+                        return ""
+                    end try
+                end tell
+                """
+                let res = self.run(script)
+                if let output = res.output, !output.isEmpty {
+                    let items = output.components(separatedBy: "///").filter { !$0.isEmpty }
+                    var realQueue: [QueueTrack] = []
+                    for (idx, item) in items.enumerated() {
+                        let parts = item.components(separatedBy: "|||")
+                        if parts.count >= 2 {
+                            let trackTitle = parts[0]
+                            let trackArtist = parts[1]
+                            let dur = parts.count >= 3 ? Self.number(parts[2]) : 0
+                            realQueue.append(QueueTrack(id: "am-\(idx)-\(trackTitle)", title: trackTitle, artist: trackArtist, duration: dur))
+                        }
+                    }
+                    if !realQueue.isEmpty {
+                        DispatchQueue.main.async {
+                            self.upNextQueue = realQueue
+                        }
+                        return
+                    }
+                }
+
+                // Fallback to related tracks
+                self.fetchRelatedQueue(title: title, artist: artist)
+            }
+        } else {
+            fetchRelatedQueue(title: title, artist: artist)
+        }
+    }
+
+    private func fetchRelatedQueue(title: String, artist: String) {
         guard let encoded = "\(artist) \(title)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://itunes.apple.com/search?term=\(encoded)&entity=song&limit=9") else { return }
 

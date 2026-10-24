@@ -147,13 +147,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.backgroundColor = NSColor(red: 0.10, green: 0.10, blue: 0.11, alpha: 1)
-            let fixedSize = NSSize(width: 680, height: 640)
-            window.setContentSize(fixedSize)
-            window.minSize = fixedSize
-            window.maxSize = fixedSize
-            window.contentMinSize = fixedSize
-            window.contentMaxSize = fixedSize
-            window.showsResizeIndicator = false
+            let initialSize = NSSize(width: 680, height: 640)
+            window.setContentSize(initialSize)
+            window.minSize = NSSize(width: 600, height: 500)
+            window.maxSize = NSSize(width: 850, height: 850)
+            window.showsResizeIndicator = true
             if #available(macOS 13.0, *) {
                 hosting.sizingOptions = []
             }
@@ -271,7 +269,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         let petXOffset = petManager.computedPetX(currentNotchWidth: state.currentNotchWidth)
         let petCenterX = frame.midX + petXOffset
-        let petCenterY = frame.maxY - (state.hardwareNotchHeight / 2)
+
+        let isSpider = (petManager.petType == .spider)
+        let menuBarHeight = state.hardwareNotchHeight
+        let basePetY = max(2, (menuBarHeight - 32) / 2)
+        let petY: CGFloat = isSpider ? min(menuBarHeight - 14, basePetY + petManager.spiderSilkLength) : basePetY
+        let petCenterY = frame.maxY - (petY + 19)
 
         let petBox = NSRect(x: petCenterX - 24, y: petCenterY - 20, width: 48, height: 40)
         return petBox.contains(mouse)

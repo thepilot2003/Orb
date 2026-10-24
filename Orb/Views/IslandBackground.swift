@@ -11,12 +11,75 @@ struct MarqueeTextView: View {
     let color: Color
     var scrollEnabled: Bool = true
 
+    @State private var textWidth: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+    @State private var offset: CGFloat = 0
+    @State private var isAnimating: Bool = false
+
     var body: some View {
-        Text(text)
-            .font(font)
-            .foregroundColor(color)
-            .lineLimit(1)
-            .truncationMode(.tail)
+        GeometryReader { geo in
+            let shouldScroll = scrollEnabled && textWidth > geo.size.width && geo.size.width > 0
+
+            ZStack(alignment: .leading) {
+                Text(text)
+                    .font(font)
+                    .foregroundColor(color)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .background(
+                        GeometryReader { textGeo in
+                            Color.clear.onAppear {
+                                textWidth = textGeo.size.width
+                            }
+                            .onChange(of: text) { _ in
+                                textWidth = textGeo.size.width
+                                resetAnimation(shouldScroll: shouldScroll, geoWidth: geo.size.width)
+                            }
+                        }
+                    )
+                    .offset(x: offset)
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
+            .clipped()
+            .onAppear {
+                containerWidth = geo.size.width
+                startAnimationIfNeeded(shouldScroll: shouldScroll, geoWidth: geo.size.width)
+            }
+            .onChange(of: geo.size.width) { newWidth in
+                containerWidth = newWidth
+                resetAnimation(shouldScroll: scrollEnabled && textWidth > newWidth && newWidth > 0, geoWidth: newWidth)
+            }
+        }
+    }
+
+    private func resetAnimation(shouldScroll: Bool, geoWidth: CGFloat) {
+        offset = 0
+        isAnimating = false
+        startAnimationIfNeeded(shouldScroll: shouldScroll, geoWidth: geoWidth)
+    }
+
+    private func startAnimationIfNeeded(shouldScroll: Bool, geoWidth: CGFloat) {
+        guard shouldScroll, !isAnimating else { return }
+        isAnimating = true
+        let overflow = textWidth - geoWidth + 12
+        let duration = Double(overflow) / 20.0 + 2.0
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            guard isAnimating else { return }
+            withAnimation(.easeInOut(duration: duration)) {
+                offset = -overflow
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration + 1.2) {
+                guard isAnimating else { return }
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    offset = 0
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    isAnimating = false
+                    startAnimationIfNeeded(shouldScroll: scrollEnabled && textWidth > geoWidth, geoWidth: geoWidth)
+                }
+            }
+        }
     }
 }
 
@@ -46,6 +109,8 @@ struct DynamicIslandArtworkVideoView: NSViewRepresentable {
 
         func attach(layer: AVPlayerLayer, url: URL) {
             if currentURL != url || player == nil {
+                looper?.disableLooping()
+                player?.pause()
                 currentURL = url
                 let item = AVPlayerItem(url: url)
                 let qPlayer = AVQueuePlayer(playerItem: item)
@@ -174,14 +239,16 @@ struct OrbNotchShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let ear = min(topEarRadius, rect.height / 2)
-        let bottomR = min(bottomCornerRadius, rect.height / 2)
+        guard rect.height > 1, rect.width > 1 else { return path }
+        let ear = min(max(0, topEarRadius), rect.height / 2)
+        let maxBottomR = max(0, rect.height - ear)
+        let bottomR = min(max(0, bottomCornerRadius), min(maxBottomR, rect.height / 2))
         path.move(to: CGPoint(x: rect.minX, y: 0))
         path.addQuadCurve(to: CGPoint(x: rect.minX + ear, y: ear), control: CGPoint(x: rect.minX + ear, y: 0))
-        path.addLine(to: CGPoint(x: rect.minX + ear, y: rect.maxY - bottomR))
+        path.addLine(to: CGPoint(x: rect.minX + ear, y: max(ear, rect.maxY - bottomR)))
         path.addQuadCurve(to: CGPoint(x: rect.minX + ear + bottomR, y: rect.maxY), control: CGPoint(x: rect.minX + ear, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.maxX - ear - bottomR, y: rect.maxY))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX - ear, y: rect.maxY - bottomR), control: CGPoint(x: rect.maxX - ear, y: rect.maxY))
+        path.addLine(to: CGPoint(x: max(rect.minX + ear + bottomR, rect.maxX - ear - bottomR), y: rect.maxY))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX - ear, y: max(ear, rect.maxY - bottomR)), control: CGPoint(x: rect.maxX - ear, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.maxX - ear, y: ear))
         path.addQuadCurve(to: CGPoint(x: rect.maxX, y: 0), control: CGPoint(x: rect.maxX - ear, y: 0))
         path.closeSubpath()

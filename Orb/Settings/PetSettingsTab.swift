@@ -376,8 +376,9 @@ struct PetSettingsTab: View {
                                     Image(systemName: hat.icon)
                                         .font(.system(size: 10))
                                     Text(hat.rawValue)
-                                        .font(.system(size: 10, weight: isSelected ? .bold : .regular))
+                                        .font(.system(size: 10, weight: isSelected ? .bold : .medium))
                                         .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 6)
@@ -414,8 +415,9 @@ struct PetSettingsTab: View {
                                     Image(systemName: outfit.icon)
                                         .font(.system(size: 10))
                                     Text(outfit.rawValue)
-                                        .font(.system(size: 10, weight: isSelected ? .bold : .regular))
+                                        .font(.system(size: 10, weight: isSelected ? .bold : .medium))
                                         .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 6)

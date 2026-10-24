@@ -13,7 +13,7 @@ struct NotchPetContainerView: View {
         // Sits flush inside the macOS menu bar height (34pt) beside the notch
         let menuBarHeight = state.hardwareNotchHeight
         let basePetY = max(2, (menuBarHeight - 32) / 2)
-        let petY: CGFloat = isSpider ? (basePetY + petManager.spiderSilkLength) : basePetY
+        let petY: CGFloat = isSpider ? min(menuBarHeight - 14, basePetY + petManager.spiderSilkLength) : basePetY
 
         ZStack(alignment: .top) {
             // Spider Silk Thread: Solid glistening silver line anchored at top bezel beside notch
@@ -82,10 +82,6 @@ struct NotchPetView: View {
 
     var body: some View {
         ZStack(alignment: .center) {
-            // Emote / Speech / Karaoke Bubble Overlay
-            speechBubbleOverlay
-                .offset(y: 22)
-
             // Pet Base Vector Body with Integrated Anatomy Accessories
             Group {
                 switch petManager.petType {
@@ -147,6 +143,9 @@ struct NotchPetView: View {
             }
             .offset(y: bobOffset)
             .scaleEffect(x: petManager.petFacingLeft ? -1 : 1, y: 1)
+
+            // Emote / Speech / Karaoke Bubble Overlay
+            speechBubbleOverlay
         }
         .frame(width: 44, height: 38)
         .contentShape(Rectangle())
@@ -170,22 +169,25 @@ struct NotchPetView: View {
                         .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 0.8))
                         .shadow(color: Color.black.opacity(0.4), radius: 4, y: 2)
                 )
+                .offset(y: 26)
                 .transition(.scale.combined(with: .opacity))
         } else if petManager.isSingingVocal {
             HStack(spacing: 2) {
                 Text("♪").foregroundColor(accentColor).font(.system(size: 11, weight: .bold))
                 Text("♫").foregroundColor(.white).font(.system(size: 9))
             }
+            .offset(x: 14, y: -14)
             .transition(.scale.combined(with: .opacity))
         } else if petManager.petAction == .sleeping {
             Text(petManager.petSleepZ < 20 ? "z" : "Z")
                 .font(.system(size: 9, weight: .bold, design: .rounded))
                 .foregroundColor(Color.white.opacity(0.85))
-                .offset(x: 12, y: petManager.petSleepZ < 20 ? 0 : -4)
+                .offset(x: 12, y: -14 + (petManager.petSleepZ < 20 ? 0 : -3))
                 .opacity(petManager.petSleepZ < 30 ? 0.9 : 0.2)
         } else if petManager.petAction == .happy {
             Text("❤️")
-                .font(.system(size: 11))
+                .font(.system(size: 12))
+                .offset(y: -16)
                 .transition(.scale.combined(with: .opacity))
         }
     }
@@ -200,8 +202,8 @@ struct TreatDropView: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.yellow.opacity(0.3))
-                .frame(width: 18, height: 18)
+                .fill(glowColor.opacity(0.35))
+                .frame(width: 20, height: 20)
                 .blur(radius: 2)
 
             Text(treat.emoji)
@@ -209,6 +211,18 @@ struct TreatDropView: View {
                 .scaleEffect(bounce ? 1.15 : 0.85)
                 .animation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true), value: bounce)
         }
+        .id(treat.id)
         .onAppear { bounce = true }
+    }
+
+    private var glowColor: Color {
+        switch treat {
+        case .fish, .dew: return .cyan
+        case .milk, .bone: return .white
+        case .catnip, .berry: return .green
+        case .sausage, .bread, .biscuit, .seed: return .orange
+        case .fly, .firefly: return .yellow
+        case .starCandy, .energy, .stardust: return .purple
+        }
     }
 }

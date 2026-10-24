@@ -250,6 +250,16 @@ struct NotchCatSprite: View {
                 .offset(y: -1)
             } else if hat == .winterBeanie {
                 UnevenRoundedRectangle(topLeadingRadius: 8, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 8)
+                    .fill(LinearGradient(colors: [Color.blue, Color.teal], startPoint: .top, endPoint: .bottom))
+                    .frame(width: 23, height: 11)
+                    .overlay(Circle().fill(Color.white).frame(width: 5, height: 5).offset(y: -7))
+                    .offset(y: -10)
+            } else if hat == .royalCrown {
+                Text("👑").font(.system(size: 11)).offset(y: -13)
+            } else if hat == .rainHat {
+                Text("🌧️").font(.system(size: 10)).offset(y: -12)
+            } else if hat == .winterBeanie {
+                UnevenRoundedRectangle(topLeadingRadius: 8, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 8)
                     .fill(LinearGradient(colors: [Color.red, Color.purple], startPoint: .top, endPoint: .bottom))
                     .frame(width: 22, height: 11)
                     .overlay(Circle().fill(Color.white).frame(width: 5, height: 5).offset(y: -7))
@@ -308,6 +318,20 @@ struct NotchDogSprite: View {
             }
             .stroke(Color(hex: "#C68B45"), style: StrokeStyle(lineWidth: 3.4, lineCap: .round))
 
+            // Cape Outfit (behind body)
+            if outfit == .superheroCape {
+                Path { p in
+                    p.move(to: CGPoint(x: 4, y: 2))
+                    let flutter = CGFloat(step % 2 == 0 ? -2 : 2)
+                    p.addLine(to: CGPoint(x: -3, y: 14 + flutter))
+                    p.addLine(to: CGPoint(x: 17, y: 14 + flutter))
+                    p.addLine(to: CGPoint(x: 10, y: 2))
+                    p.closeSubpath()
+                }
+                .fill(LinearGradient(colors: [Color(hex: "#FF3B30"), Color(hex: "#D70015")], startPoint: .top, endPoint: .bottom))
+                .offset(y: 2)
+            }
+
             // Dog Body (3D warm golden coat)
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(
@@ -322,6 +346,39 @@ struct NotchDogSprite: View {
                 )
                 .shadow(color: Color.black.opacity(0.2), radius: 2, y: 2)
                 .offset(y: 4)
+
+            // Dog Outfits
+            if outfit == .raincoat {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(hex: "#FFD60A"))
+                    .frame(width: 26, height: 14)
+                    .overlay(
+                        VStack(spacing: 2) {
+                            Circle().fill(Color.black.opacity(0.7)).frame(width: 2, height: 2)
+                            Circle().fill(Color.black.opacity(0.7)).frame(width: 2, height: 2)
+                        }
+                    )
+                    .offset(y: 6)
+            } else if outfit == .winterSweater {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(hex: "#30B0C7"))
+                    .frame(width: 26, height: 14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(hex: "#FF3B30"))
+                            .frame(width: 23, height: 4)
+                            .offset(y: -4)
+                    )
+                    .offset(y: 6)
+            } else if outfit == .tuxedo {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color(hex: "#1C1C1E"))
+                        .frame(width: 26, height: 14)
+                    Text("🎀").font(.system(size: 8)).offset(y: -2)
+                }
+                .offset(y: 6)
+            }
 
             // Floppy Puppy Ears on sides
             HStack(spacing: 17) {
@@ -415,6 +472,16 @@ struct NotchDogSprite: View {
                     RoundedRectangle(cornerRadius: 2).fill(Color.black).frame(width: 8, height: 5)
                 }
                 .offset(y: -1)
+            } else if hat == .winterBeanie {
+                UnevenRoundedRectangle(topLeadingRadius: 8, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 8)
+                    .fill(LinearGradient(colors: [Color.blue, Color.teal], startPoint: .top, endPoint: .bottom))
+                    .frame(width: 23, height: 11)
+                    .overlay(Circle().fill(Color.white).frame(width: 5, height: 5).offset(y: -7))
+                    .offset(y: -10)
+            } else if hat == .royalCrown {
+                Text("👑").font(.system(size: 11)).offset(y: -13)
+            } else if hat == .rainHat {
+                Text("🌧️").font(.system(size: 10)).offset(y: -12)
             }
 
             // MagSafe Golden Lightning Snack
@@ -509,7 +576,7 @@ struct NotchDuckSprite: View {
             }
             .offset(x: -1, y: 13)
 
-            // Fitted DJ Headphones for Duck
+            // Fitted DJ Headphones & Hats for Duck
             if hat == .djHeadphones {
                 ZStack {
                     Path { p in
@@ -523,6 +590,45 @@ struct NotchDuckSprite: View {
                 }
                 .frame(width: 26, height: 12)
                 .offset(y: -8)
+            } else if hat == .sunglasses {
+                HStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 1.5).fill(Color.black).frame(width: 6, height: 4)
+                    Rectangle().fill(Color.black).frame(width: 2, height: 1)
+                }
+                .offset(x: 3, y: -1)
+            } else if hat == .winterBeanie {
+                UnevenRoundedRectangle(topLeadingRadius: 6, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 6)
+                    .fill(LinearGradient(colors: [Color.purple, Color.pink], startPoint: .top, endPoint: .bottom))
+                    .frame(width: 18, height: 9)
+                    .overlay(Circle().fill(Color.white).frame(width: 4, height: 4).offset(y: -5))
+                    .offset(y: -10)
+            } else if hat == .royalCrown {
+                Text("👑").font(.system(size: 9)).offset(y: -11)
+            }
+
+            // Duck Outfits
+            if outfit == .raincoat {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(hex: "#FFD60A").opacity(0.85))
+                    .frame(width: 22, height: 12)
+                    .offset(y: 4)
+            } else if outfit == .winterSweater {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(hex: "#FF453A"))
+                    .frame(width: 22, height: 12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2).fill(Color.white).frame(width: 18, height: 3).offset(y: -3)
+                    )
+                    .offset(y: 4)
+            } else if outfit == .superheroCape {
+                Path { p in
+                    p.move(to: CGPoint(x: -2, y: 4))
+                    p.addLine(to: CGPoint(x: -8, y: 15))
+                    p.addLine(to: CGPoint(x: 4, y: 15))
+                    p.closeSubpath()
+                }
+                .fill(Color.red)
+                .offset(y: 2)
             }
         }
         .frame(width: 36, height: 32)
@@ -622,6 +728,18 @@ struct NotchSpiderSprite: View {
 
             // Fuzzy Velvet Spider Body (3D Spherical Gradients)
             ZStack {
+                // Cape behind spider
+                if outfit == .superheroCape {
+                    Path { p in
+                        p.move(to: CGPoint(x: 3, y: 0))
+                        p.addLine(to: CGPoint(x: -4, y: 12))
+                        p.addLine(to: CGPoint(x: 12, y: 12))
+                        p.closeSubpath()
+                    }
+                    .fill(Color.red)
+                    .offset(y: 2)
+                }
+
                 Circle()
                     .fill(RadialGradient(colors: [Color(hex: "#5C5C60"), Color(hex: "#242426"), Color(hex: "#101012")], center: .center, startRadius: 1, endRadius: 10))
                     .frame(width: 17, height: 16)
@@ -631,6 +749,23 @@ struct NotchSpiderSprite: View {
                     .fill(Color(hex: "#2C2C2E"))
                     .frame(width: 13, height: 11)
                     .offset(y: 6)
+
+                // Spider Outfits
+                if outfit == .raincoat {
+                    Circle()
+                        .fill(Color(hex: "#FFD60A").opacity(0.85))
+                        .frame(width: 13, height: 9)
+                        .offset(y: 4)
+                } else if outfit == .winterSweater {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(hex: "#AF52DE"))
+                        .frame(width: 13, height: 6)
+                        .offset(y: 4)
+                } else if outfit == .tuxedo {
+                    Text("🎀")
+                        .font(.system(size: 7))
+                        .offset(y: 8)
+                }
             }
 
             // Big Reflective Anime Eyes (Lucas the Spider Style!)
@@ -675,13 +810,28 @@ struct NotchSpiderSprite: View {
                 .offset(y: 9.5)
             }
 
-            // Cyber DJ Visor for Spider
+            // Cyber DJ Visor & Hats for Spider
             if hat == .djHeadphones {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(LinearGradient(colors: [accentColor, Color.cyan], startPoint: .leading, endPoint: .trailing))
                     .frame(width: 13, height: 3.5)
                     .shadow(color: accentColor.opacity(0.8), radius: 2)
                     .offset(y: 4)
+            } else if hat == .sunglasses {
+                HStack(spacing: 1.5) {
+                    RoundedRectangle(cornerRadius: 1).fill(Color.black).frame(width: 6, height: 3.5)
+                    Rectangle().fill(Color.black).frame(width: 1.5, height: 1)
+                    RoundedRectangle(cornerRadius: 1).fill(Color.black).frame(width: 6, height: 3.5)
+                }
+                .offset(y: 4)
+            } else if hat == .winterBeanie {
+                UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 1, bottomTrailingRadius: 1, topTrailingRadius: 5)
+                    .fill(Color.orange)
+                    .frame(width: 13, height: 7)
+                    .overlay(Circle().fill(Color.white).frame(width: 3.5, height: 3.5).offset(y: -4))
+                    .offset(y: -6)
+            } else if hat == .royalCrown {
+                Text("👑").font(.system(size: 8)).offset(y: -8)
             }
         }
         .frame(width: 38, height: 32)

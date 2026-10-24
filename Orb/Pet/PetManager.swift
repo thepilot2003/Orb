@@ -165,14 +165,28 @@ final class PetManager: ObservableObject {
 
     // MARK: - Effective Computed Wardrobe (Context-Aware)
 
+    private var resolvedWeather: PetWeatherMode {
+        if weatherMode != .auto { return weatherMode }
+        let month = Calendar.current.component(.month, from: Date())
+        let hour = Calendar.current.component(.hour, from: Date())
+        if month == 12 || month <= 2 {
+            return .snowy
+        } else if hour >= 8 && hour <= 17 {
+            return .sunny
+        } else {
+            return .rainy
+        }
+    }
+
     var effectiveHat: PetHat {
         // 1. If Music is playing & DJ Headphones enabled, wear DJ Headphones
-        if djHeadphonesEnabled && OrbState.shared.playback == .playing {
+        // Only override if user hasn't selected an explicit wardrobe hat
+        if djHeadphonesEnabled && OrbState.shared.playback == .playing && (petHat == .none || petHat == .djHeadphones) {
             return .djHeadphones
         }
         // 2. Weather reactions (if enabled and no explicit hat chosen)
         if weatherReactionsEnabled && petHat == .none {
-            switch weatherMode {
+            switch resolvedWeather {
             case .rainy: return .rainHat
             case .snowy: return .winterBeanie
             case .sunny: return .sunglasses
@@ -186,7 +200,7 @@ final class PetManager: ObservableObject {
     var effectiveOutfit: PetOutfit {
         // Weather reactions (if enabled and no explicit outfit chosen)
         if weatherReactionsEnabled && petOutfit == .none {
-            switch weatherMode {
+            switch resolvedWeather {
             case .rainy: return .raincoat
             case .snowy: return .winterSweater
             case .sunny, .auto: break
@@ -247,7 +261,7 @@ final class PetManager: ObservableObject {
         let isMusicPlaying = orb.playback == .playing
 
         // 1. Music Reactive Mode: Dance or Sing
-        if isMusicPlaying {
+        if isMusicPlaying && adaptiveDanceEnabled {
             let r = Double.random(in: 0...1)
             if r < 0.65 {
                 petAction = .dancing
@@ -268,7 +282,7 @@ final class PetManager: ObservableObject {
                 petActiveSide = (petActiveSide == .right) ? .left : .right
                 petPositionX = 0
             }
-            let target = CGFloat.random(in: 0...42)
+            let target = CGFloat.random(in: 0...24)
             petTargetX = target
             let side = (placement == .both) ? petActiveSide : placement
             if side == .right {
@@ -294,9 +308,9 @@ final class PetManager: ObservableObject {
     private func triggerSpiderDangle() {
         isSpiderDangling = true
         withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
-            spiderSilkLength = CGFloat.random(in: 10...22)
+            spiderSilkLength = CGFloat.random(in: 5...11)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 3.0...5.5)) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 2.5...4.5)) { [weak self] in
             guard let self = self else { return }
             withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
                 self.spiderSilkLength = 0
@@ -446,6 +460,14 @@ final class PetManager: ObservableObject {
             petAction = .typing
             let cheers = ["Fast coder! ⚡️", "Crushing it! 💻", "Speed run! 🔥", "You got this! 🚀"]
             showSpeechBubble(cheers.randomElement() ?? "Fast coder! ⚡️", duration: 3.0)
+
+            // Release action back to idle after 4 seconds of cheer so AI decision loop isn't permanently locked
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
+                guard let self = self else { return }
+                if self.petAction == .typing {
+                    self.petAction = .idle
+                }
+            }
         }
 
         // Reset debounce timer
@@ -467,8 +489,16 @@ final class PetManager: ObservableObject {
     private func tickWorkSession() {
         guard breakReminderEnabled else { return }
 
-        workSessionMinutes += 1
-        // Trigger yawn and water reminder every 45 minutes
+        // Only count towards work session if there was recent typing in the last 2 minutes
+        let isCurrentlyActive = abs(Date().timeIntervalSince(lastKeyTime)) < 120
+        if isCurrentlyActive {
+            workSessionMinutes += 1
+        } else if abs(Date().timeIntervalSince(lastKeyTime)) > 900 {
+            // User stepped away / took a break (>15 min idle); reset counter
+            workSessionMinutes = 0
+        }
+
+        // Trigger yawn and water reminder after 45 minutes of active work
         if workSessionMinutes >= 45 {
             workSessionMinutes = 0
             triggerBreakReminder()

@@ -22,7 +22,7 @@ struct IntroDotsView: View {
             }
         }
         .onAppear {
-            phase = 2
+            phase = 1
         }
     }
 }

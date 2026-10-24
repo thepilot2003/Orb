@@ -516,7 +516,11 @@ struct WaveformView: View {
     }
 
     private func barFill(_ index: Int, _ t: Double) -> some ShapeStyle {
-        AnyShapeStyle(color)
+        if state.automixAnimation {
+            let pulse = 0.85 + 0.15 * sin(t * 3.5 + Double(index) * 0.7)
+            return AnyShapeStyle(color.opacity(pulse))
+        }
+        return AnyShapeStyle(color)
     }
 
     private func barHeight(_ index: Int, _ t: Double) -> CGFloat {

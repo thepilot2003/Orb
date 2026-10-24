@@ -5,6 +5,25 @@ All notable changes to the Orb project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.05] - 2026-10-25
+
+### Fixed
+- **Speech Bubble & Emotes Placement**: Emotes (karaoke notes `♪♫`, sleeping `z Z`, love hearts `❤️`) now float cleanly above and beside the companion's head in the menu bar; speech bubbles render legibly with high-contrast pill styling.
+- **Companion Click & Tap Hit-Testing**: Synchronized Cocoa AppKit mouse coordinates with SwiftUI beside-notch geometry, including spider silk dangle offsets, ensuring clicks on the pet always register reliably.
+- **Adaptive Dance Routine Toggle**: Fixed `adaptiveDanceEnabled` in `PetManager` so the dance routine strictly respects the settings toggle.
+- **Smart Pomodoro Break Timer**: Break reminders now accurately measure continuous active typing work rather than counting idle time while music plays.
+- **Spider Silk Dangle Physics**: Capped silk dangle depth so the spider acrobat gracefully suspends right along the notch rim without spilling into screen content.
+- **Menu Bar Roam Boundaries**: Bound pet roaming target to a compact zone beside the notch, preventing collisions with system status items.
+- **Typing Lock Prevention**: Released typing action after celebratory cheers so the companion's AI decision loop never locks indefinitely during extended coding sessions.
+- **Live Name Marquee Auto-Scroll**: Added full horizontal smooth auto-scrolling with pause cycles for long track titles and artist names.
+- **Treat Snack Color Sync**: Animal treat snacks now feature matched glowing ambient halos corresponding to their item types.
+- **Waveform Automix Rhythm Sync**: Connected waveform bar fills to dynamic live pulse modulation when automix animation is active.
+- **Real Apple Music Queue Integration**: Integrated native AppleScript playlist introspection to show real upcoming tracks in the Up Next queue panel.
+- **Expanded Wardrobe Coverage**: Added full hat (beanies, crowns, shades) and outfit (raincoats, sweaters, capes, tuxedos) renders across Duck, Dog, and Spider companions.
+- **Wardrobe Custom Hat Preservation**: DJ headphones during music playback only equip when no custom wardrobe hat has been chosen, respecting user fashion choices.
+- **Auto Weather Mode Resolution**: Added seasonal and diurnal time-based weather simulation for auto weather mode.
+- **Memory & Resource Protection**: Added automatic LRU pruning for synchronized lyrics and motion artwork video caches; properly invalidated `AVPlayerLooper` instances on track transition.
+
 ## [1.04] - 2026-10-25
 
 ### Added
