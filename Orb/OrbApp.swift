@@ -147,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.backgroundColor = NSColor(red: 0.10, green: 0.10, blue: 0.11, alpha: 1)
-            let fixedSize = NSSize(width: 560, height: 620)
+            let fixedSize = NSSize(width: 680, height: 640)
             window.setContentSize(fixedSize)
             window.minSize = fixedSize
             window.maxSize = fixedSize

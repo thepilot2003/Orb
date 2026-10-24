@@ -659,7 +659,8 @@ final class OrbState: ObservableObject {
            let right = screen.auxiliaryTopRightArea {
             let width = right.minX - left.maxX
             hardwareNotchWidth = width > 0 ? width : 184
-            hardwareNotchHeight = top
+            // Physical camera housing depth on MacBook Air/Pro is 32-34pt (safeAreaInsets includes menu bar padding)
+            hardwareNotchHeight = max(28, min(top - 3.5, 34))
         } else {
             hardwareNotchWidth = 184
             hardwareNotchHeight = max(24, NSStatusBar.system.thickness)

@@ -11,9 +11,9 @@ struct NotchPetContainerView: View {
         let isSpider = (petManager.petType == .spider)
 
         // Perfect Physical Alignment:
-        // By anchoring at (notchBottom - 6), the companion's top edge/paws grip the bottom curve
-        // of the physical MacBook notch with ZERO air gap, perfectly perching along the ledge!
-        let baseOffset: CGFloat = notchBottom - 6
+        // Anchoring at (notchBottom + 1) places the companion's head and ears right at the lower edge
+        // of the physical MacBook camera cutout—100% visible on screen pixels with zero clipping and zero gap!
+        let baseOffset: CGFloat = notchBottom + 1
         let yOffset: CGFloat = isSpider ? (baseOffset + petManager.spiderSilkLength) : baseOffset
 
         ZStack(alignment: .top) {

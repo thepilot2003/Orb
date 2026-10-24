@@ -106,7 +106,7 @@ struct ContentView: View {
                 .padding(.vertical, 18)
             }
         }
-        .frame(width: 560, height: 620)
+        .frame(width: 680, height: 640)
         .background(Color(red: 0.09, green: 0.09, blue: 0.10))
     }
 
@@ -201,11 +201,13 @@ struct ContentView: View {
                         selectedTab = tab
                     }
                 }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: tab.icon)
                             .font(.system(size: 11, weight: .semibold))
                         Text(tab.rawValue)
-                            .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                            .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
                     .foregroundColor(isSelected ? .white : Color.white.opacity(0.55))
                     .padding(.horizontal, 10)
