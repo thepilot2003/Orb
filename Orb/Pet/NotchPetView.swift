@@ -19,22 +19,18 @@ struct NotchPetContainerView: View {
         ZStack(alignment: .top) {
             // Spider Silk Thread: Solid glistening silver line anchored directly inside notch
             if isSpider && petManager.spiderSilkLength > 1 {
-                ZStack {
+                ZStack(alignment: .top) {
                     // Anchor Knot at notch rim
                     Circle()
                         .fill(Color.white)
                         .frame(width: 3.5, height: 3.5)
-                        .position(x: petManager.petPositionX, y: notchBottom - 2)
+                        .offset(x: petManager.petPositionX, y: notchBottom - 2)
 
                     // Silk Bungee Line
-                    Path { path in
-                        path.move(to: CGPoint(x: petManager.petPositionX, y: notchBottom - 2))
-                        path.addLine(to: CGPoint(x: petManager.petPositionX, y: yOffset - 4))
-                    }
-                    .stroke(
-                        LinearGradient(colors: [Color.white.opacity(0.95), Color.white.opacity(0.65)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 1.2
-                    )
+                    Rectangle()
+                        .fill(LinearGradient(colors: [Color.white.opacity(0.95), Color.white.opacity(0.65)], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 1.2, height: max(0, petManager.spiderSilkLength))
+                        .offset(x: petManager.petPositionX, y: notchBottom)
                 }
             }
 

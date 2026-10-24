@@ -206,7 +206,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func repositionOrb() {
         OrbState.shared.detectHardwareNotch()
         guard let screen = OrbState.targetScreen(), let panel = notchPanel else { return }
-        let x = screen.frame.midX - canvasSize.width / 2
+        let notchCenterX: CGFloat
+        if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+            notchCenterX = (left.maxX + right.minX) / 2.0
+        } else {
+            notchCenterX = screen.frame.midX
+        }
+        let x = notchCenterX - canvasSize.width / 2
         let y = screen.frame.maxY - canvasSize.height
         panel.setFrame(NSRect(x: x, y: y, width: canvasSize.width, height: canvasSize.height), display: true)
     }
