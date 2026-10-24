@@ -5,6 +5,16 @@ All notable changes to the Orb project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.04] - 2026-10-25
+
+### Added
+- **Beside Notch Companion Placement**: Relocated the pet from below the notch to sit cleanly **beside the notch** within the native macOS menu bar row, keeping the workspace, browser tabs, and application title bars underneath 100% unobstructed.
+- **Left / Right / Both Sides Placement Picker**: Added intuitive side selection in Settings > Notch Pet:
+  - *Right of Notch*: Perches to the right of the island, facing inward.
+  - *Left of Notch*: Perches to the left of the notch, facing inward.
+  - *Both Sides (Roaming)*: Strolls and switches sides across the menu bar.
+- **Dynamic Spring Tracking**: The companion automatically glides outward when the Dynamic Island expands for Now Playing or Calendar views, and retracts flush beside the notch when compact.
+
 ## [1.03] - 2026-10-24
 
 ### Fixed

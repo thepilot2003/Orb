@@ -16,6 +16,17 @@ final class PetManager: ObservableObject {
         }
     }
 
+    @Published var placement: NotchPetPlacement = {
+        let raw = UserDefaults.standard.string(forKey: "orbPetPlacement") ?? NotchPetPlacement.right.rawValue
+        return NotchPetPlacement(rawValue: raw) ?? .right
+    }() {
+        didSet {
+            UserDefaults.standard.set(placement.rawValue, forKey: "orbPetPlacement")
+            resetPetPosition()
+        }
+    }
+    @Published var petActiveSide: NotchPetPlacement = .right
+
     @Published var petActivity: NotchPetActivity = {
         let raw = UserDefaults.standard.string(forKey: "orbPetActivity") ?? NotchPetActivity.playful.rawValue
         return NotchPetActivity(rawValue: raw) ?? .playful
@@ -117,6 +128,33 @@ final class PetManager: ObservableObject {
         checkPowerSource()
         setupTimers()
         setupTypingMonitor()
+        resetPetPosition()
+    }
+
+    // MARK: - Geometry Beside Notch
+
+    func computedPetX(currentNotchWidth: CGFloat) -> CGFloat {
+        let halfIsland = (currentNotchWidth + 20) / 2
+        let baseGap: CGFloat = 20
+        let side: NotchPetPlacement = (placement == .both) ? petActiveSide : placement
+        switch side {
+        case .left:
+            return -(halfIsland + baseGap + petPositionX)
+        case .right, .both:
+            return (halfIsland + baseGap + petPositionX)
+        }
+    }
+
+    func resetPetPosition() {
+        petPositionX = 0
+        petTargetX = 0
+        if placement == .left {
+            petFacingLeft = false  // Faces right toward the notch
+            petActiveSide = .left
+        } else {
+            petFacingLeft = true   // Faces left toward the notch
+            petActiveSide = .right
+        }
     }
 
     deinit {
@@ -224,17 +262,27 @@ final class PetManager: ObservableObject {
             return
         }
 
-        // 3. Notch Roaming Walking
+        // 3. Notch Roaming Walking Beside Notch
         if roamingEnabled && Double.random(in: 0...1) < 0.60 {
-            let maxReach = max(24, (orb.currentNotchWidth / 2) - 24)
-            let target = CGFloat.random(in: -maxReach...maxReach)
+            if placement == .both && Double.random(in: 0...1) < 0.35 {
+                petActiveSide = (petActiveSide == .right) ? .left : .right
+                petPositionX = 0
+            }
+            let target = CGFloat.random(in: 0...42)
             petTargetX = target
-            petFacingLeft = (target < petPositionX)
+            let side = (placement == .both) ? petActiveSide : placement
+            if side == .right {
+                petFacingLeft = (target < petPositionX)
+            } else {
+                petFacingLeft = (target > petPositionX)
+            }
             petAction = .walking
             return
         }
 
         // 4. Idle or Sleep
+        let side = (placement == .both) ? petActiveSide : placement
+        petFacingLeft = (side == .right)
         let idleChoice = Double.random(in: 0...1)
         if idleChoice < 0.70 {
             petAction = .idle
@@ -246,7 +294,7 @@ final class PetManager: ObservableObject {
     private func triggerSpiderDangle() {
         isSpiderDangling = true
         withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
-            spiderSilkLength = CGFloat.random(in: 18...38)
+            spiderSilkLength = CGFloat.random(in: 10...22)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 3.0...5.5)) { [weak self] in
             guard let self = self else { return }
@@ -287,9 +335,16 @@ final class PetManager: ObservableObject {
             if abs(diff) <= stepSpeed {
                 petPositionX = petTargetX
                 petAction = .idle
+                let side = (placement == .both) ? petActiveSide : placement
+                petFacingLeft = (side == .right)
             } else {
                 petPositionX += (diff > 0 ? stepSpeed : -stepSpeed)
-                petFacingLeft = (diff < 0)
+                let side = (placement == .both) ? petActiveSide : placement
+                if side == .right {
+                    petFacingLeft = (diff < 0)
+                } else {
+                    petFacingLeft = (diff > 0)
+                }
                 petWalkStep = (petWalkStep + 1) % 4
             }
 

@@ -1,43 +1,40 @@
 import SwiftUI
 
-// MARK: - Notch Pet Container View (Flush Grounding on Notch Rim)
+// MARK: - Notch Pet Container View (Beside Notch Placement)
 
 struct NotchPetContainerView: View {
     @ObservedObject var state: OrbState
     @ObservedObject var petManager = PetManager.shared
 
     var body: some View {
-        let notchBottom: CGFloat = state.isExpanded ? state.expandedHeight : state.currentNotchHeight
         let isSpider = (petManager.petType == .spider)
+        let petX = petManager.computedPetX(currentNotchWidth: state.currentNotchWidth)
 
-        // Perfect Physical Alignment:
-        // Anchoring at (notchBottom + 1) places the companion's head and ears right at the lower edge
-        // of the physical MacBook camera cutout—100% visible on screen pixels with zero clipping and zero gap!
-        let baseOffset: CGFloat = notchBottom + 1
-        let yOffset: CGFloat = isSpider ? (baseOffset + petManager.spiderSilkLength) : baseOffset
+        // Sits flush inside the macOS menu bar height (34pt) beside the notch
+        let menuBarHeight = state.hardwareNotchHeight
+        let basePetY = max(2, (menuBarHeight - 32) / 2)
+        let petY: CGFloat = isSpider ? (basePetY + petManager.spiderSilkLength) : basePetY
 
         ZStack(alignment: .top) {
-            // Spider Silk Thread: Solid glistening silver line anchored directly inside notch
+            // Spider Silk Thread: Solid glistening silver line anchored at top bezel beside notch
             if isSpider && petManager.spiderSilkLength > 1 {
                 ZStack(alignment: .top) {
-                    // Anchor Knot at notch rim
                     Circle()
                         .fill(Color.white)
                         .frame(width: 3.5, height: 3.5)
-                        .offset(x: petManager.petPositionX, y: notchBottom - 2)
+                        .offset(x: petX, y: 1)
 
-                    // Silk Bungee Line
                     Rectangle()
                         .fill(LinearGradient(colors: [Color.white.opacity(0.95), Color.white.opacity(0.65)], startPoint: .top, endPoint: .bottom))
                         .frame(width: 1.2, height: max(0, petManager.spiderSilkLength))
-                        .offset(x: petManager.petPositionX, y: notchBottom)
+                        .offset(x: petX, y: 2)
                 }
             }
 
             // Falling Treat Snack Drop Animation
             if let treat = petManager.activeTreat {
                 TreatDropView(treat: treat)
-                    .offset(x: petManager.petPositionX, y: yOffset - 24)
+                    .offset(x: petX, y: max(0, petY - 18))
                     .transition(.scale.combined(with: .opacity))
             }
 
@@ -48,10 +45,10 @@ struct NotchPetContainerView: View {
                 NotchPetView(petManager: petManager, accentColor: state.accentColor)
             }
             .buttonStyle(.plain)
-            .offset(x: petManager.petPositionX, y: yOffset)
+            .offset(x: petX, y: petY)
             .rotationEffect(.degrees(isSpider ? petManager.spiderSwingAngle : 0), anchor: .top)
-            .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.82), value: petManager.petPositionX)
-            .animation(.spring(response: 0.35, dampingFraction: 0.78), value: yOffset)
+            .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.82), value: petX)
+            .animation(.spring(response: 0.35, dampingFraction: 0.78), value: petY)
         }
     }
 }
@@ -87,7 +84,7 @@ struct NotchPetView: View {
         ZStack(alignment: .center) {
             // Emote / Speech / Karaoke Bubble Overlay
             speechBubbleOverlay
-                .offset(y: -26)
+                .offset(y: 22)
 
             // Pet Base Vector Body with Integrated Anatomy Accessories
             Group {

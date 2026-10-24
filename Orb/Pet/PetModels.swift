@@ -78,6 +78,26 @@ enum NotchPetType: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+// MARK: - Notch Pet Placement
+
+enum NotchPetPlacement: String, CaseIterable, Identifiable, Codable {
+    case right = "Right of Notch"
+    case left = "Left of Notch"
+    case both = "Both Sides (Roaming)"
+
+    var id: String { rawValue }
+
+    var title: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .right: return "arrow.right.to.line"
+        case .left: return "arrow.left.to.line"
+        case .both: return "arrow.left.and.right"
+        }
+    }
+}
+
 // MARK: - Notch Pet Actions
 
 enum NotchPetAction: String, CaseIterable {

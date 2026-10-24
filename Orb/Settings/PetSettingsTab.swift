@@ -32,17 +32,63 @@ struct PetSettingsTab: View {
         VStack(spacing: 14) {
             // Master Companion Toggle Card
             SettingsCard("Notch Companion", icon: "pawprint.fill") {
-                Toggle(isOn: $state.showNotchPet) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Show Notch Pet Companion")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
-                        Text("An adorable animated friend that perches and plays along your MacBook notch.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
+                VStack(spacing: 12) {
+                    Toggle(isOn: $state.showNotchPet) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Show Notch Pet Companion")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text("An adorable animated friend that perches and plays beside your MacBook notch in the menu bar.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: orbTeal))
+
+                    if state.showNotchPet {
+                        Divider().background(Color.white.opacity(0.1))
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("Pet Placement")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Text("Beside notch · Zero workspace overlap")
+                                    .font(.system(size: 10.5))
+                                    .foregroundColor(.gray)
+                            }
+
+                            HStack(spacing: 8) {
+                                ForEach(NotchPetPlacement.allCases) { place in
+                                    let isSel = (petManager.placement == place)
+                                    Button(action: {
+                                        state.haptic()
+                                        petManager.placement = place
+                                    }) {
+                                        HStack(spacing: 5) {
+                                            Image(systemName: place.icon)
+                                                .font(.system(size: 10, weight: .semibold))
+                                            Text(place.rawValue)
+                                                .font(.system(size: 10.5, weight: isSel ? .bold : .medium))
+                                                .lineLimit(1)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 6)
+                                        .background(isSel ? orbTeal.opacity(0.25) : Color.white.opacity(0.04))
+                                        .foregroundColor(isSel ? .white : Color.white.opacity(0.6))
+                                        .cornerRadius(6)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .stroke(isSel ? orbTeal : Color.clear, lineWidth: 1)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
                     }
                 }
-                .toggleStyle(SwitchToggleStyle(tint: orbTeal))
             }
 
             if state.showNotchPet {
@@ -433,8 +479,8 @@ struct PetSettingsTab: View {
                     .padding(.top, 2)
                 }
 
-                toggleRow("🚶 Roam Notch Ledge",
-                          detail: "Allows your pet to freely walk along the bottom ledge of the notch.",
+                toggleRow("🚶 Roam Beside Notch",
+                          detail: "Allows your pet to freely stroll beside the notch inside the menu bar.",
                           isOn: $petManager.roamingEnabled)
             }
         }

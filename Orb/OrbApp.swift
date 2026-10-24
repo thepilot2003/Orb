@@ -53,8 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var collapseWork: DispatchWorkItem?
     private var cancellables = Set<AnyCancellable>()
 
-    // Big enough for the open island plus its shadow, small enough not to cover much of the menu bar.
-    private let canvasSize = NSSize(width: 560, height: 360)
+    // Roomy canvas for the open island plus its shadow and beside-notch companions.
+    private let canvasSize = NSSize(width: 680, height: 360)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
@@ -269,11 +269,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let state = OrbState.shared
         let petManager = PetManager.shared
 
-        let petCenterX = frame.midX + petManager.petPositionX
-        let notchBottom = state.isExpanded ? state.expandedHeight : state.currentNotchHeight
-        let petY = frame.maxY - notchBottom
+        let petXOffset = petManager.computedPetX(currentNotchWidth: state.currentNotchWidth)
+        let petCenterX = frame.midX + petXOffset
+        let petCenterY = frame.maxY - (state.hardwareNotchHeight / 2)
 
-        let petBox = NSRect(x: petCenterX - 24, y: petY - 44, width: 48, height: 46)
+        let petBox = NSRect(x: petCenterX - 24, y: petCenterY - 20, width: 48, height: 40)
         return petBox.contains(mouse)
     }
 
