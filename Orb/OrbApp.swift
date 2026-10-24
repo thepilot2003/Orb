@@ -244,19 +244,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let state = OrbState.shared
         let margin: CGFloat = state.isExpanded ? 16 : 4
         let width = state.currentNotchWidth + 20 + margin * 2
-        var height = state.currentNotchHeight + margin
-        if state.showNotchPet {
-            height += 48
-        }
+        let height = state.currentNotchHeight + margin
 
         // Instant fast exit when cursor is not near the notch (saves CPU on 95% of movements)
-        guard mouse.y >= frame.maxY - (height + 30) else { return false }
+        guard mouse.y >= frame.maxY - (height + 20) else { return false }
 
         let minX = frame.midX - width / 2
         let maxX = frame.midX + width / 2
         let minY = frame.maxY - height
 
         return mouse.x >= minX && mouse.x <= maxX && mouse.y >= minY && mouse.y <= frame.maxY + 1
+    }
+
+    private func isMouseOverPet() -> Bool {
+        guard let panel = notchPanel, OrbState.shared.showNotchPet else { return false }
+        let mouse = NSEvent.mouseLocation
+        let frame = panel.frame
+        let state = OrbState.shared
+        let petManager = PetManager.shared
+
+        let petCenterX = frame.midX + petManager.petPositionX
+        let notchBottom = state.isExpanded ? state.expandedHeight : state.currentNotchHeight
+        let petY = frame.maxY - notchBottom
+
+        let petBox = NSRect(x: petCenterX - 24, y: petY - 44, width: 48, height: 46)
+        return petBox.contains(mouse)
     }
 
     private func collapse() {
@@ -272,7 +284,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let panel = notchPanel, panel.isVisible else { return }
         let state = OrbState.shared
 
-        if isMouseInsideNotch() {
+        let overPet = isMouseOverPet()
+        let insideNotch = isMouseInsideNotch()
+
+        if overPet {
+            // Enable mouse clicks on pet without expanding island
+            panel.ignoresMouseEvents = false
+        } else if insideNotch {
             collapseWork?.cancel()
             collapseWork = nil
             if !state.isHovered {
@@ -285,13 +303,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
             panel.ignoresMouseEvents = false
         } else if state.isHovered || state.isExpanded {
-            // Short grace period so brushing the edge doesn't flicker, and never collapse
-            // mid-drag (seeking).
+            // Short grace period so brushing the edge doesn't flicker, and never collapse mid-drag
             guard collapseWork == nil, NSEvent.pressedMouseButtons == 0 else { return }
             let work = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
                 self.collapseWork = nil
-                if !self.isMouseInsideNotch() { self.collapse() }
+                if !self.isMouseInsideNotch() && !self.isMouseOverPet() { self.collapse() }
             }
             collapseWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
@@ -304,6 +321,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func handleClick(_ event: NSEvent) -> NSEvent? {
         let state = OrbState.shared
         guard event.window === notchPanel else { return event }
+
+        // If clicking directly on the pet, pet the pet instead of expanding the notch
+        if isMouseOverPet() {
+            PetManager.shared.petInteracted()
+            return nil
+        }
+
         if !state.isExpanded && isMouseInsideNotch() {
             collapseWork?.cancel()
             collapseWork = nil

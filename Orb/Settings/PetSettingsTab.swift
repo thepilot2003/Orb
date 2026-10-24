@@ -2,15 +2,34 @@ import SwiftUI
 
 private let orbTeal = Color(red: 0.23, green: 0.84, blue: 0.75)
 
+enum PetSubSection: String, CaseIterable, Identifiable {
+    case companion = "Companion"
+    case feeding = "Snack Bowl"
+    case wardrobe = "Wardrobe"
+    case behaviors = "Behaviors"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .companion: return "pawprint.fill"
+        case .feeding: return "fork.knife"
+        case .wardrobe: return "tshirt.fill"
+        case .behaviors: return "sparkles"
+        }
+    }
+}
+
 struct PetSettingsTab: View {
     @ObservedObject var state = OrbState.shared
     @ObservedObject var petManager = PetManager.shared
+    @State private var subSection: PetSubSection = .companion
 
-    private let hatColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
-    private let outfitColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+    private let hatColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+    private let outfitColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             // Master Companion Toggle Card
             SettingsCard("Notch Companion", icon: "pawprint.fill") {
                 Toggle(isOn: $state.showNotchPet) {
@@ -18,7 +37,7 @@ struct PetSettingsTab: View {
                         Text("Show Notch Pet Companion")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
-                        Text("An adorable animated friend that lives, perches, and plays along your MacBook notch.")
+                        Text("An adorable animated friend that perches and plays along your MacBook notch.")
                             .font(.system(size: 11))
                             .foregroundColor(.gray)
                     }
@@ -27,46 +46,76 @@ struct PetSettingsTab: View {
             }
 
             if state.showNotchPet {
-                // Live Pet Preview & Stage
-                liveStageCard
+                // Compact Stage Preview
+                liveStageHeader
 
-                // Companion Picker Card
-                companionPickerCard
+                // Segmented Sub-Navigation (Organized & Compact, Never Overwhelming)
+                HStack(spacing: 6) {
+                    ForEach(PetSubSection.allCases) { section in
+                        let isSelected = (subSection == section)
+                        Button(action: {
+                            state.haptic()
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                subSection = section
+                            }
+                        }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: section.icon)
+                                    .font(.system(size: 10, weight: .semibold))
+                                Text(section.rawValue)
+                                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(isSelected ? orbTeal.opacity(0.25) : Color.white.opacity(0.05))
+                            .foregroundColor(isSelected ? .white : Color.white.opacity(0.65))
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(isSelected ? orbTeal : Color.clear, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
 
-                // Interactive Feeding Station Card
-                feedingStationCard
-
-                // Wardrobe Studio (Hats & Outfits)
-                wardrobeStudioCard
-
-                // Smart Notch Interactive Behaviors
-                smartBehaviorsCard
+                // Sub-Section Content
+                switch subSection {
+                case .companion:
+                    companionPickerCard
+                case .feeding:
+                    animalSpecificFeedingCard
+                case .wardrobe:
+                    wardrobeStudioCard
+                case .behaviors:
+                    smartBehaviorsCard
+                }
             }
         }
     }
 
-    // MARK: - Live Pet Stage & Interaction Preview
+    // MARK: - Compact Live Pet Stage
 
-    private var liveStageCard: some View {
-        SettingsCard("Live Companion Stage", icon: "sparkles") {
-            HStack(spacing: 18) {
-                // Interactive Pet Stage
+    private var liveStageHeader: some View {
+        SettingsCard("Companion Stage", icon: "sparkles") {
+            HStack(spacing: 16) {
+                // Notch Ledge Simulator
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.black.opacity(0.45))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
                         )
-                        .frame(width: 110, height: 80)
+                        .frame(width: 95, height: 72)
 
-                    // Notch ledge simulation bar
+                    // Simulated hardware notch bottom rim
                     Rectangle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 80, height: 4)
-                        .offset(y: -14)
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 70, height: 3)
+                        .offset(y: -10)
 
-                    // Pet Avatar
+                    // Pet Avatar sitting flush on rim
                     Button(action: {
                         petManager.petInteracted()
                     }) {
@@ -76,13 +125,13 @@ struct PetSettingsTab: View {
                     .offset(y: 4)
                 }
 
-                // Companion Bio & Stats
-                VStack(alignment: .leading, spacing: 6) {
+                // Companion Bio & Quick Actions
+                VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(petManager.petType.emoji)
-                            .font(.system(size: 18))
+                            .font(.system(size: 16))
                         Text(petManager.petType.title)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                     }
 
@@ -94,7 +143,7 @@ struct PetSettingsTab: View {
                         Button(action: { petManager.petInteracted() }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "hand.tap.fill")
-                                Text("Pet Me")
+                                Text("Pet \(petManager.petType.shortName)")
                             }
                             .font(.system(size: 10, weight: .semibold))
                             .padding(.horizontal, 8)
@@ -120,7 +169,7 @@ struct PetSettingsTab: View {
                         Button(action: { petManager.triggerBreakReminder() }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "cup.and.saucer.fill")
-                                Text("Break Reminder")
+                                Text("Test Break")
                             }
                             .font(.system(size: 10, weight: .semibold))
                             .padding(.horizontal, 8)
@@ -131,6 +180,7 @@ struct PetSettingsTab: View {
                         .buttonStyle(.plain)
                     }
                     .foregroundColor(orbTeal)
+                    .padding(.top, 2)
                 }
             }
         }
@@ -139,43 +189,61 @@ struct PetSettingsTab: View {
     // MARK: - Companion Selector
 
     private var companionPickerCard: some View {
-        SettingsCard("Choose Your Companion", icon: "person.2.badge.gearshape.fill") {
-            HStack(spacing: 8) {
-                ForEach(NotchPetType.allCases) { companion in
-                    let isSelected = (petManager.petType == companion)
-                    Button(action: {
-                        state.haptic()
-                        petManager.petType = companion
-                    }) {
-                        VStack(spacing: 6) {
-                            Text(companion.emoji)
-                                .font(.system(size: 22))
+        SettingsCard("Select Companion", icon: "person.2.badge.gearshape.fill") {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(NotchPetType.allCases) { companion in
+                        let isSelected = (petManager.petType == companion)
+                        Button(action: {
+                            state.haptic()
+                            petManager.petType = companion
+                        }) {
+                            VStack(spacing: 5) {
+                                Text(companion.emoji)
+                                    .font(.system(size: 22))
 
-                            Text(companion.title)
-                                .font(.system(size: 11, weight: isSelected ? .bold : .medium))
-                                .foregroundColor(isSelected ? .white : .gray)
+                                Text(companion.shortName)
+                                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                                    .foregroundColor(isSelected ? .white : .gray)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(isSelected ? orbTeal.opacity(0.22) : Color.white.opacity(0.04))
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isSelected ? orbTeal : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
+                            )
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(isSelected ? orbTeal.opacity(0.22) : Color.white.opacity(0.04))
-                        .cornerRadius(10)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(isSelected ? orbTeal : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
-                        )
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+
+                // Roaming Pace Selector
+                HStack {
+                    Text("Roaming Activity:")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Picker("Activity", selection: $petManager.petActivity) {
+                        ForEach(NotchPetActivity.allCases) { act in
+                            Text(act.title).tag(act)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .frame(width: 220)
+                }
+                .padding(.top, 6)
             }
         }
     }
 
-    // MARK: - Feeding Station
+    // MARK: - Animal-Specific Feeding Card (Cats eat Fish/Milk, Dogs eat Bones/Meat, etc.)
 
-    private var feedingStationCard: some View {
-        SettingsCard("Feeding Station & Treats", icon: "fork.knife") {
+    private var animalSpecificFeedingCard: some View {
+        SettingsCard("\(petManager.petType.shortName)'s Snack Bowl", icon: "fork.knife") {
             VStack(alignment: .leading, spacing: 12) {
-                // Meters: Hunger & Happiness
+                // Fullness & Happiness Progress
                 HStack(spacing: 20) {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack {
@@ -206,36 +274,31 @@ struct PetSettingsTab: View {
                     }
                 }
 
-                Text("Feed a treat to your pet:")
+                Text("Feed \(petManager.petType.shortName) their favorite snack:")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(Color.white.opacity(0.85))
 
-                // Treat Buttons
-                HStack(spacing: 8) {
-                    ForEach(PetTreat.allCases) { treat in
-                        let isFav = (petManager.petType.favoriteTreat == treat)
+                // Shows ONLY this animal's authentic favorite treats!
+                HStack(spacing: 10) {
+                    ForEach(petManager.petType.availableTreats) { treat in
                         Button(action: {
                             petManager.feed(treat: treat)
                         }) {
-                            VStack(spacing: 3) {
+                            VStack(spacing: 4) {
                                 Text(treat.emoji)
-                                    .font(.system(size: 20))
-                                Text(treat.rawValue)
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundColor(isFav ? Color(hex: "#FFD60A") : .white)
-                                if isFav {
-                                    Text("Fav ❤️")
-                                        .font(.system(size: 7, weight: .bold))
-                                        .foregroundColor(Color(hex: "#FFD60A"))
-                                }
+                                    .font(.system(size: 24))
+                                Text(treat.label)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 10)
                             .background(Color.white.opacity(0.06))
-                            .cornerRadius(8)
+                            .cornerRadius(10)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(isFav ? Color(hex: "#FFD60A").opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -245,10 +308,10 @@ struct PetSettingsTab: View {
         }
     }
 
-    // MARK: - Wardrobe Boutique (Hats & Outfits)
+    // MARK: - Wardrobe Studio
 
     private var wardrobeStudioCard: some View {
-        SettingsCard("Wardrobe Studio", icon: "tshirt.fill") {
+        SettingsCard("Wardrobe Boutique", icon: "tshirt.fill") {
             VStack(alignment: .leading, spacing: 14) {
                 // Hats Picker
                 VStack(alignment: .leading, spacing: 6) {
@@ -330,39 +393,32 @@ struct PetSettingsTab: View {
     // MARK: - Smart Behaviors Card
 
     private var smartBehaviorsCard: some View {
-        SettingsCard("Smart Companion Behaviors", icon: "brain.head.profile") {
-            VStack(alignment: .leading, spacing: 12) {
-                // 1. DJ Headphones
+        SettingsCard("Interactive Behaviors", icon: "brain.head.profile") {
+            VStack(alignment: .leading, spacing: 10) {
                 toggleRow("🎧 Mini DJ Headphones",
                           detail: "Automatically puts on glowing headphones and bobs with the music waveform.",
                           isOn: $petManager.djHeadphonesEnabled)
 
-                // 2. Singing Lip-Sync
                 toggleRow("🎤 Apple Music Karaoke Singing",
                           detail: "Opens mouth to sing in sync with lyrics vocal phrases, rests during instrumental breaks.",
                           isOn: $petManager.singingEnabled)
 
-                // 3. Adaptive Dance Routines
                 toggleRow("💃 Adaptive Dance Routines",
                           detail: "Performs lively bouncy jumps on fast upbeat songs and gentle swaying on acoustic tracks.",
                           isOn: $petManager.adaptiveDanceEnabled)
 
-                // 4. MagSafe Battery Snack
                 toggleRow("⚡ MagSafe Charging Snack",
                           detail: "Holds a glowing battery snack or lightning bolt when plugged into power.",
                           isOn: $petManager.chargingSnackEnabled)
 
-                // 5. Typing Work Companion
                 toggleRow("💻 Rapid Typing Companion",
                           detail: "Pulls out a tiny laptop or cheers you on with pom-poms when you type fast.",
                           isOn: $petManager.typingCompanionEnabled)
 
-                // 6. Pomodoro Break Reminder
                 toggleRow("⏳ Break & Hydration Reminder",
                           detail: "Yawns, stretches, and prompts a quick water break every 45-60 min of continuous work.",
                           isOn: $petManager.breakReminderEnabled)
 
-                // 7. Weather Reactions
                 toggleRow("🌦 Weather Reactions",
                           detail: "Automatically puts on yellow raincoat for rain, winter beanie for cold, or sunglasses when sunny.",
                           isOn: $petManager.weatherReactionsEnabled)
@@ -374,28 +430,12 @@ struct PetSettingsTab: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    .padding(.top, 4)
+                    .padding(.top, 2)
                 }
 
-                // 8. Notch Roaming
                 toggleRow("🚶 Roam Notch Ledge",
                           detail: "Allows your pet to freely walk along the bottom ledge of the notch.",
                           isOn: $petManager.roamingEnabled)
-
-                // Activity Level
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Activity Pace")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.gray)
-
-                    Picker("Activity", selection: $petManager.petActivity) {
-                        ForEach(NotchPetActivity.allCases) { act in
-                            Text(act.title).tag(act)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                }
-                .padding(.top, 4)
             }
         }
     }

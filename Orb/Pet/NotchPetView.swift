@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Notch Pet Container View (Full Visibility Below Notch)
+// MARK: - Notch Pet Container View (Flush Grounding on Notch Rim)
 
 struct NotchPetContainerView: View {
     @ObservedObject var state: OrbState
@@ -10,33 +10,42 @@ struct NotchPetContainerView: View {
         let notchBottom: CGFloat = state.isExpanded ? state.expandedHeight : state.currentNotchHeight
         let isSpider = (petManager.petType == .spider)
 
-        // Vertical Anchor:
-        // Physical notch ends at notchBottom (~32-34px idle, 180-220px expanded).
-        // Placing pet at (notchBottom + 14) positions the character completely in the clear screen area,
-        // perching right below the notch rim without any hardware bezel obstruction.
-        let yOffset: CGFloat = isSpider ? (notchBottom + 12 + petManager.spiderSilkLength) : (notchBottom + 14)
+        // Perfect Physical Alignment:
+        // By anchoring at (notchBottom - 6), the companion's top edge/paws grip the bottom curve
+        // of the physical MacBook notch with ZERO air gap, perfectly perching along the ledge!
+        let baseOffset: CGFloat = notchBottom - 6
+        let yOffset: CGFloat = isSpider ? (baseOffset + petManager.spiderSilkLength) : baseOffset
 
         ZStack(alignment: .top) {
-            // Spider Silk Thread: Silver hanging line suspended directly from notch lip
-            if isSpider && (petManager.spiderSilkLength > 2 || petManager.isSpiderDangling) {
-                Path { path in
-                    path.move(to: CGPoint(x: petManager.petPositionX, y: notchBottom))
-                    path.addLine(to: CGPoint(x: petManager.petPositionX, y: yOffset - 10))
+            // Spider Silk Thread: Solid glistening silver line anchored directly inside notch
+            if isSpider && petManager.spiderSilkLength > 1 {
+                ZStack {
+                    // Anchor Knot at notch rim
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 3.5, height: 3.5)
+                        .position(x: petManager.petPositionX, y: notchBottom - 2)
+
+                    // Silk Bungee Line
+                    Path { path in
+                        path.move(to: CGPoint(x: petManager.petPositionX, y: notchBottom - 2))
+                        path.addLine(to: CGPoint(x: petManager.petPositionX, y: yOffset - 4))
+                    }
+                    .stroke(
+                        LinearGradient(colors: [Color.white.opacity(0.95), Color.white.opacity(0.65)], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 1.2
+                    )
                 }
-                .stroke(
-                    LinearGradient(colors: [Color.white.opacity(0.85), Color(hex: "#8E8E93").opacity(0.4)], startPoint: .top, endPoint: .bottom),
-                    style: StrokeStyle(lineWidth: 1.0, dash: [4, 1])
-                )
             }
 
             // Falling Treat Snack Drop Animation
             if let treat = petManager.activeTreat {
                 TreatDropView(treat: treat)
-                    .offset(x: petManager.petPositionX, y: yOffset - 22)
+                    .offset(x: petManager.petPositionX, y: yOffset - 24)
                     .transition(.scale.combined(with: .opacity))
             }
 
-            // Companion Character & Wardrobe
+            // Companion Character
             Button(action: {
                 petManager.petInteracted()
             }) {
@@ -60,19 +69,19 @@ struct NotchPetView: View {
     private var bobOffset: CGFloat {
         switch petManager.petAction {
         case .walking:
-            return (petManager.petWalkStep % 2 == 0) ? -1.5 : 0.8
+            return (petManager.petWalkStep % 2 == 0) ? -1.2 : 0.6
         case .dancing:
-            return (petManager.petWalkStep % 2 == 0) ? (petManager.isFastDancing ? -4.5 : -2.0) : 1.5
+            return (petManager.petWalkStep % 2 == 0) ? (petManager.isFastDancing ? -4.0 : -1.8) : 1.2
         case .happy:
-            return -6.0
+            return -5.0
         case .sleeping:
             return 0.5
         case .typing:
-            return (petManager.petWalkStep % 2 == 0) ? -1.0 : 1.0
+            return (petManager.petWalkStep % 2 == 0) ? -0.8 : 0.8
         case .stretching:
-            return -3.0
+            return -2.5
         case .eating:
-            return (petManager.petWalkStep % 2 == 0) ? -1.2 : 0.5
+            return (petManager.petWalkStep % 2 == 0) ? -1.0 : 0.5
         case .singing, .idle:
             return 0
         }
@@ -82,36 +91,67 @@ struct NotchPetView: View {
         ZStack(alignment: .center) {
             // Emote / Speech / Karaoke Bubble Overlay
             speechBubbleOverlay
-                .offset(y: -24)
+                .offset(y: -26)
 
-            // Pet Base Vector Body
+            // Pet Base Vector Body with Integrated Anatomy Accessories
             Group {
                 switch petManager.petType {
                 case .cat:
-                    NotchCatSprite(action: petManager.petAction, step: petManager.petWalkStep, isSinging: petManager.isSingingVocal)
+                    NotchCatSprite(
+                        action: petManager.petAction,
+                        step: petManager.petWalkStep,
+                        isSinging: petManager.isSingingVocal,
+                        hat: petManager.effectiveHat,
+                        outfit: petManager.effectiveOutfit,
+                        isCharging: petManager.isCharging && petManager.chargingSnackEnabled,
+                        isTyping: petManager.isTypingFast && petManager.typingCompanionEnabled,
+                        accentColor: accentColor
+                    )
                 case .dog:
-                    NotchDogSprite(action: petManager.petAction, step: petManager.petWalkStep, isSinging: petManager.isSingingVocal)
+                    NotchDogSprite(
+                        action: petManager.petAction,
+                        step: petManager.petWalkStep,
+                        isSinging: petManager.isSingingVocal,
+                        hat: petManager.effectiveHat,
+                        outfit: petManager.effectiveOutfit,
+                        isCharging: petManager.isCharging && petManager.chargingSnackEnabled,
+                        isTyping: petManager.isTypingFast && petManager.typingCompanionEnabled,
+                        accentColor: accentColor
+                    )
                 case .duck:
-                    NotchDuckSprite(action: petManager.petAction, step: petManager.petWalkStep, isSinging: petManager.isSingingVocal)
+                    NotchDuckSprite(
+                        action: petManager.petAction,
+                        step: petManager.petWalkStep,
+                        isSinging: petManager.isSingingVocal,
+                        hat: petManager.effectiveHat,
+                        outfit: petManager.effectiveOutfit,
+                        isCharging: petManager.isCharging && petManager.chargingSnackEnabled,
+                        isTyping: petManager.isTypingFast && petManager.typingCompanionEnabled,
+                        accentColor: accentColor
+                    )
                 case .spider:
-                    NotchSpiderSprite(action: petManager.petAction, step: petManager.petWalkStep, isSinging: petManager.isSingingVocal, isDangling: petManager.isSpiderDangling)
+                    NotchSpiderSprite(
+                        action: petManager.petAction,
+                        step: petManager.petWalkStep,
+                        isSinging: petManager.isSingingVocal,
+                        isDangling: petManager.isSpiderDangling,
+                        hat: petManager.effectiveHat,
+                        outfit: petManager.effectiveOutfit,
+                        isCharging: petManager.isCharging && petManager.chargingSnackEnabled,
+                        accentColor: accentColor
+                    )
                 case .orb:
-                    NotchOrbSprite(action: petManager.petAction, step: petManager.petWalkStep, color: accentColor, isSinging: petManager.isSingingVocal)
+                    NotchOrbSprite(
+                        action: petManager.petAction,
+                        step: petManager.petWalkStep,
+                        color: accentColor,
+                        isSinging: petManager.isSingingVocal,
+                        hat: petManager.effectiveHat,
+                        outfit: petManager.effectiveOutfit,
+                        isCharging: petManager.isCharging && petManager.chargingSnackEnabled
+                    )
                 }
             }
-            .offset(y: bobOffset)
-            .scaleEffect(x: petManager.petFacingLeft ? -1 : 1, y: 1)
-
-            // Wardrobe & Interactive Overlays (Headphones, Hats, Outfits, Laptop, Battery Snack)
-            NotchPetWardrobeView(
-                hat: petManager.effectiveHat,
-                outfit: petManager.effectiveOutfit,
-                action: petManager.petAction,
-                step: petManager.petWalkStep,
-                isCharging: petManager.isCharging && petManager.chargingSnackEnabled,
-                isTyping: petManager.isTypingFast && petManager.typingCompanionEnabled,
-                accentColor: accentColor
-            )
             .offset(y: bobOffset)
             .scaleEffect(x: petManager.petFacingLeft ? -1 : 1, y: 1)
         }
@@ -119,7 +159,7 @@ struct NotchPetView: View {
         .contentShape(Rectangle())
     }
 
-    // MARK: - Emotes & Speech Bubble
+    // MARK: - Emotes & Speech Bubble (Full Width, Never Truncated)
 
     @ViewBuilder
     private var speechBubbleOverlay: some View {
@@ -127,12 +167,14 @@ struct NotchPetView: View {
             Text(text)
                 .font(.system(size: 10, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
                 .background(
                     Capsule()
-                        .fill(Color.black.opacity(0.82))
-                        .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.8))
+                        .fill(Color.black.opacity(0.85))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 0.8))
                         .shadow(color: Color.black.opacity(0.4), radius: 4, y: 2)
                 )
                 .transition(.scale.combined(with: .opacity))
@@ -164,7 +206,6 @@ struct TreatDropView: View {
 
     var body: some View {
         ZStack {
-            // Sparkles
             Circle()
                 .fill(Color.yellow.opacity(0.3))
                 .frame(width: 18, height: 18)

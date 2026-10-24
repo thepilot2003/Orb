@@ -472,14 +472,7 @@ final class PetManager: ObservableObject {
 
         petAction = .happy
         happinessLevel = min(1.0, happinessLevel + 0.15)
-        let petSounds = [
-            NotchPetType.cat: "Purrrr... 🐱",
-            NotchPetType.dog: "Woof! ❤️",
-            NotchPetType.duck: "Quack! ✨",
-            NotchPetType.spider: "Tickle! 🕷️",
-            NotchPetType.orb: "Zzzzzt! 🔮"
-        ]
-        showSpeechBubble(petSounds[petType] ?? "❤️", duration: 1.6)
+        showSpeechBubble(petType.soundText, duration: 1.6)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in
             guard let self = self, self.petAction == .happy else { return }
