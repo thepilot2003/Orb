@@ -592,29 +592,48 @@ struct ContentView: View {
 
     private var advancedTab: some View {
         VStack(spacing: 16) {
-            SettingsCard("Lock Screen & Desktop Widget", icon: "macwindow.on.rectangle") {
-                toggleRow("Show on Lock Screen",
-                          detail: "Displays the translucent liquid glass media player directly on your macOS Lock Screen.",
-                          isOn: $state.showLockScreenWidget)
+            SettingsCard("Notch Pet Companion", icon: "pawprint.fill") {
+                toggleRow("Show notch pet",
+                          detail: "An adorable animated companion that lives and walks along your MacBook notch.",
+                          isOn: $state.showNotchPet)
 
-                toggleRow("Show on Desktop",
-                          detail: "Keeps a floating liquid glass player card on your desktop that you can drag anywhere.",
-                          isOn: $state.showMediaWidget)
+                if state.showNotchPet {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Companion Type")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.gray)
 
-                toggleRow("Float above all apps",
-                          detail: "Keeps the desktop widget floating on top of all windows across every Space.",
-                          isOn: $state.mediaWidgetAboveApps)
-                    .disabled(!state.showMediaWidget)
-                    .opacity(state.showMediaWidget ? 1 : 0.4)
+                        segmented($state.petType)
 
-                Button("Reset Widget Position") {
-                    UserDefaults.standard.removeObject(forKey: "orbWidgetX")
-                    UserDefaults.standard.removeObject(forKey: "orbWidgetY")
-                    NotificationCenter.default.post(name: Notification.Name("orbCenterWidget"), object: nil)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Activity Level")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.gray)
+                                Text("Controls how often \(state.petType.defaultName) explores and walks along the notch.")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
+                            Spacer()
+                        }
+
+                        segmented($state.petActivity)
+
+                        HStack {
+                            Text("\(state.petType.defaultName) is currently \(state.petAction.rawValue)...")
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.75))
+                            Spacer()
+                            Button("Pet \(state.petType.defaultName) ❤️") {
+                                state.petInteracted()
+                            }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(orbTeal)
+                        }
+                        .padding(.top, 2)
+                    }
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(orbTeal)
             }
 
             SettingsCard("Haptic Feedback", icon: "hand.tap.fill") {

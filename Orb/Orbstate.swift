@@ -254,6 +254,50 @@ enum ProgressStyle: String, OrbOption {
     }
 }
 
+// MARK: - Notch Pet Types
+
+enum NotchPetType: String, OrbOption {
+    case cat, dog, duck, orb
+    var title: String {
+        switch self {
+        case .cat: return "Cat 🐱"
+        case .dog: return "Dog 🐶"
+        case .duck: return "Duck 🦆"
+        case .orb: return "Orb 🫧"
+        }
+    }
+    var defaultName: String {
+        switch self {
+        case .cat: return "Mochi"
+        case .dog: return "Bento"
+        case .duck: return "Waddles"
+        case .orb: return "Lumi"
+        }
+    }
+}
+
+enum NotchPetAction: String {
+    case idle, walking, sleeping, dancing, happy
+}
+
+enum NotchPetActivity: String, OrbOption {
+    case calm, playful, energetic
+    var title: String {
+        switch self {
+        case .calm: return "Calm"
+        case .playful: return "Playful"
+        case .energetic: return "Energetic"
+        }
+    }
+    var interval: TimeInterval {
+        switch self {
+        case .calm: return 5.5
+        case .playful: return 3.2
+        case .energetic: return 1.8
+        }
+    }
+}
+
 enum CalendarAccess { case unknown, granted, denied }
 
 struct OrbCalendarEvent: Identifiable {
@@ -428,16 +472,32 @@ final class OrbState: ObservableObject {
         }
     }
 
-    // Desktop / Lock Screen Media Widget
-    @Published var showLockScreenWidget: Bool = Prefs.bool("showLockScreenWidget", true) {
-        didSet { UserDefaults.standard.set(showLockScreenWidget, forKey: "showLockScreenWidget") }
+    // MARK: - Notch Pet
+    @Published var showNotchPet: Bool = Prefs.bool("showNotchPet", true) {
+        didSet {
+            UserDefaults.standard.set(showNotchPet, forKey: "showNotchPet")
+            if showNotchPet { startPetTimer() } else { stopPetTimer() }
+        }
     }
-    @Published var showMediaWidget: Bool = Prefs.bool("showMediaWidget", true) {
-        didSet { UserDefaults.standard.set(showMediaWidget, forKey: "showMediaWidget") }
+    @Published var petType: NotchPetType = Prefs.option("petType", NotchPetType.cat) {
+        didSet { UserDefaults.standard.set(petType.rawValue, forKey: "petType") }
     }
-    @Published var mediaWidgetAboveApps: Bool = Prefs.bool("mediaWidgetAboveApps", true) {
-        didSet { UserDefaults.standard.set(mediaWidgetAboveApps, forKey: "mediaWidgetAboveApps") }
+    @Published var petActivity: NotchPetActivity = Prefs.option("petActivity", NotchPetActivity.playful) {
+        didSet {
+            UserDefaults.standard.set(petActivity.rawValue, forKey: "petActivity")
+            startPetTimer()
+        }
     }
+    @Published var petPositionX: CGFloat = 0
+    @Published var petTargetX: CGFloat = 0
+    @Published var petFacingLeft: Bool = false
+    @Published var petAction: NotchPetAction = .idle
+    @Published var petWalkStep: Int = 0
+    @Published var petHearts: Int = 0
+    @Published var petSleepZ: Int = 0
+
+    private var petTimer: Timer?
+    private var petStepTimer: Timer?
 
     // Automix & Queue
     @Published var automixAnimation: Bool = Prefs.bool("automixAnimation", true) {
@@ -534,6 +594,101 @@ final class OrbState: ObservableObject {
         RunLoop.main.add(calTimer, forMode: .common)
         calendarTimer = calTimer
         if showCalendar { setupCalendar() }
+        if showNotchPet { startPetTimer() }
+    }
+
+    // MARK: - Notch Pet Engine
+
+    func startPetTimer() {
+        stopPetTimer()
+        guard showNotchPet else { return }
+
+        // Decision loop: decides when to walk, sleep, dance, or look around
+        let interval = petActivity.interval
+        petTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.decidePetAction()
+        }
+
+        // Fast animation ticker: smoothly steps the walk cycle and moves position
+        petStepTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
+            self?.tickPetMotion()
+        }
+    }
+
+    func stopPetTimer() {
+        petTimer?.invalidate()
+        petTimer = nil
+        petStepTimer?.invalidate()
+        petStepTimer = nil
+    }
+
+    private func decidePetAction() {
+        guard showNotchPet, petAction != .happy else { return }
+
+        // If music is playing, occasionally dance to the beat!
+        if playback == .playing && Double.random(in: 0...1) < 0.35 {
+            petAction = .dancing
+            return
+        }
+
+        // Random action choice:
+        let r = Double.random(in: 0...1)
+        if r < 0.55 {
+            // Walk to a new position along the notch ledge
+            let maxReach = max(30, (currentNotchWidth / 2) - 18)
+            let newX = CGFloat.random(in: -maxReach...maxReach)
+            petTargetX = newX
+            petFacingLeft = (newX < petPositionX)
+            petAction = .walking
+        } else if r < 0.80 {
+            // Idle sitting / grooming / looking around
+            petAction = .idle
+        } else {
+            // Napping with Zzz
+            petAction = .sleeping
+        }
+    }
+
+    private func tickPetMotion() {
+        guard showNotchPet else { return }
+
+        switch petAction {
+        case .walking:
+            let diff = petTargetX - petPositionX
+            let stepSpeed: CGFloat = (petActivity == .energetic) ? 2.8 : (petActivity == .playful ? 2.0 : 1.4)
+
+            if abs(diff) <= stepSpeed {
+                petPositionX = petTargetX
+                petAction = .idle
+            } else {
+                petPositionX += (diff > 0 ? stepSpeed : -stepSpeed)
+                petFacingLeft = (diff < 0)
+                petWalkStep = (petWalkStep + 1) % 4
+            }
+
+        case .sleeping:
+            petSleepZ = (petSleepZ + 1) % 40
+
+        case .dancing:
+            petWalkStep = (petWalkStep + 1) % 4
+            if playback != .playing { petAction = .idle }
+
+        case .idle:
+            break
+
+        case .happy:
+            break
+        }
+    }
+
+    func petInteracted() {
+        haptic()
+        petHearts += 1
+        petAction = .happy
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in
+            guard let self = self, self.petAction == .happy else { return }
+            self.petAction = .idle
+        }
     }
 
     // MARK: Derived values
@@ -1086,7 +1241,7 @@ final class OrbState: ObservableObject {
 
     private func lrclibRequest(url: URL) -> URLRequest {
         var req = URLRequest(url: url)
-        req.setValue("Orb/1.0.0 (macOS; DynamicIslandApp)", forHTTPHeaderField: "User-Agent")
+        req.setValue("Orb/1.01 (macOS; DynamicIslandApp)", forHTTPHeaderField: "User-Agent")
         req.timeoutInterval = 7.0
         return req
     }

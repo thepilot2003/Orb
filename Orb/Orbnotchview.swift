@@ -407,12 +407,18 @@ struct OrbNotchView: View {
 
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                IslandBackground(state: state, shape: shape)
-                panels
+                ZStack(alignment: .top) {
+                    IslandBackground(state: state, shape: shape)
+                    panels
+                }
+                .frame(width: state.currentNotchWidth + 20, height: state.currentNotchHeight, alignment: .top)
+                .clipShape(shape)
+                .shadow(color: Color.black.opacity(raised ? 0.5 : 0), radius: 16, y: 8)
+
+                if state.showNotchPet {
+                    NotchPetContainerView(state: state)
+                }
             }
-            .frame(width: state.currentNotchWidth + 20, height: state.currentNotchHeight, alignment: .top)
-            .clipShape(shape)
-            .shadow(color: Color.black.opacity(raised ? 0.5 : 0), radius: 16, y: 8)
             .animation(OrbMotion.morph, value: state.isExpanded)
             .animation(OrbMotion.peek, value: state.isHovered)
             .animation(OrbMotion.morph, value: state.isBannerVisible)
@@ -1707,193 +1713,348 @@ struct CalendarPanel: View {
     }
 }
 
-// MARK: - Floating Desktop & Lock Screen Media Widget
+// MARK: - Notch Pet Companion Views
 
-struct OrbMediaWidgetView: View {
-    @ObservedObject var state = OrbState.shared
+struct NotchPetContainerView: View {
+    @ObservedObject var state: OrbState
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
+        let notchH = state.currentNotchHeight
+        let yOffset: CGFloat = state.isExpanded ? (state.expandedHeight - 20) : max(4, notchH - 18)
 
-        ZStack {
-            // Frosted glass background with obsidian base (prevents underlying desktop text bleed-through)
-            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                .clipShape(shape)
-
-            shape.fill(Color(red: 0.10, green: 0.10, blue: 0.12).opacity(0.88))
-
-            if let image = state.artworkImage, state.playback != .stopped {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .blur(radius: 35)
-                    .opacity(0.22)
-                    .clipShape(shape)
-            }
-
-            // Specular perimeter stroke
-            shape.stroke(
-                LinearGradient(
-                    stops: [
-                        Gradient.Stop(color: Color.white.opacity(0.40), location: 0.0),
-                        Gradient.Stop(color: Color.white.opacity(0.12), location: 0.35),
-                        Gradient.Stop(color: Color.clear, location: 0.65),
-                        Gradient.Stop(color: Color.white.opacity(0.22), location: 1.0)
-                    ],
-                    startPoint: .topLeading, endPoint: .bottomTrailing),
-                lineWidth: 1
-            )
-
-            // Content
-            VStack(spacing: 10) {
-                // Top Row: Artwork + Track Details + Waveform + Dismiss
-                HStack(spacing: 12) {
-                    ArtworkView(state: state, size: 48, corner: 13, bordered: true, showBadge: true)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        if state.scrollLongNames {
-                            MarqueeTextView(text: state.trackName,
-                                            font: .system(size: 14.5, weight: .bold, design: .rounded),
-                                            color: .white,
-                                            scrollEnabled: true)
-                        } else {
-                            Text(state.trackName)
-                                .font(.system(size: 14.5, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                        }
-                        Text(state.artistName)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.78))
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 4)
-
-                    WaveformView(style: state.waveformStyle,
-                                 color: state.color(for: state.waveformColor),
-                                 isPlaying: state.playback == .playing,
-                                 width: 20, height: 15, barCount: 4)
-
-                    Button(action: {
-                        state.showMediaWidget = false
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(Color.white.opacity(0.6))
-                            .frame(width: 18, height: 18)
-                            .background(Circle().fill(Color.white.opacity(0.12)))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Hide widget on desktop")
-                }
-
-                // Middle Row: Scrubber with timestamps
-                TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: state.playback != .playing)) { timeline in
-                    let pos = state.livePosition(at: timeline.date)
-                    let dur = state.duration
-                    let fraction = dur > 0 ? min(max(pos / dur, 0), 1) : 0
-
-                    HStack(spacing: 8) {
-                        Text(OrbState.format(pos))
-                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.80))
-                            .frame(width: 28, alignment: .leading)
-
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.18))
-                                Capsule().fill(Color.white.opacity(0.95))
-                                    .frame(width: max(4.5, geo.size.width * CGFloat(fraction)))
-                            }
-                            .frame(height: 4.5)
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onEnded { value in
-                                        let f = min(max(Double(value.location.x / max(geo.size.width, 1)), 0), 1)
-                                        state.haptic()
-                                        state.seek(toFraction: f)
-                                    }
-                            )
-                        }
-                        .frame(height: 12)
-
-                        Text(OrbState.format(dur))
-                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.80))
-                            .frame(width: 28, alignment: .trailing)
-                    }
-                }
-
-                // Bottom Row: Clean borderless glyph controls
-                HStack(spacing: 0) {
-                    Button(action: { state.toggleFavorite() }) {
-                        Image(systemName: state.isFavorited ? "star.fill" : "star")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(state.isFavorited ? Color(hex: "#FFD60A") : Color.white.opacity(0.85))
-                            .frame(width: 28, height: 28)
-                    }
-                    .buttonStyle(OrbPressStyle())
-
-                    Spacer()
-
-                    Button(action: {
-                        state.haptic()
-                        state.skipPrevious()
-                    }) {
-                        Image(systemName: "backward.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 34, height: 30)
-                    }
-                    .buttonStyle(OrbPressStyle())
-
-                    Spacer()
-
-                    Button(action: {
-                        state.haptic()
-                        state.togglePlayPause()
-                    }) {
-                        Image(systemName: state.playback == .playing ? "pause.fill" : "play.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 34)
-                    }
-                    .buttonStyle(OrbPressStyle())
-
-                    Spacer()
-
-                    Button(action: {
-                        state.haptic()
-                        state.skipNext()
-                    }) {
-                        Image(systemName: "forward.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 34, height: 30)
-                    }
-                    .buttonStyle(OrbPressStyle())
-
-                    Spacer()
-
-                    Button(action: {
-                        state.haptic()
-                        state.openActivePlayer()
-                    }) {
-                        Image(systemName: "display")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color.white.opacity(0.85))
-                            .frame(width: 28, height: 28)
-                    }
-                    .buttonStyle(OrbPressStyle())
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+        Button(action: {
+            state.petInteracted()
+        }) {
+            NotchPetView(state: state)
         }
-        .frame(width: 388, height: 148)
-        .shadow(color: Color.black.opacity(0.35), radius: 14, y: 6)
-        .padding(16)
+        .buttonStyle(.plain)
+        .offset(x: state.petPositionX, y: yOffset)
+        .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.8), value: state.petPositionX)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: yOffset)
+    }
+}
+
+struct NotchPetView: View {
+    @ObservedObject var state: OrbState
+
+    private var bobOffset: CGFloat {
+        switch state.petAction {
+        case .walking:
+            return (state.petWalkStep % 2 == 0) ? -1.0 : 0.5
+        case .dancing:
+            return (state.petWalkStep % 2 == 0) ? -2.5 : 1.0
+        case .happy:
+            return -5.0
+        case .sleeping:
+            return 0.5
+        case .idle:
+            return 0
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Floating thought / emote bubbles
+            if state.petAction == .happy {
+                Text("❤️")
+                    .font(.system(size: 11))
+                    .offset(y: -18)
+                    .transition(.scale.combined(with: .opacity))
+            } else if state.petAction == .sleeping {
+                Text(state.petSleepZ < 20 ? "z" : "Z")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.85))
+                    .offset(x: 10, y: state.petSleepZ < 20 ? -12 : -16)
+                    .opacity(state.petSleepZ < 30 ? 0.9 : 0.2)
+            } else if state.petAction == .dancing {
+                Text("🎵")
+                    .font(.system(size: 10))
+                    .offset(x: 10, y: -14)
+                    .transition(.opacity)
+            }
+
+            // Pet Character Sprite
+            Group {
+                switch state.petType {
+                case .cat:
+                    NotchCatSprite(action: state.petAction, step: state.petWalkStep)
+                case .dog:
+                    NotchDogSprite(action: state.petAction, step: state.petWalkStep)
+                case .duck:
+                    NotchDuckSprite(action: state.petAction, step: state.petWalkStep)
+                case .orb:
+                    NotchOrbSprite(action: state.petAction, step: state.petWalkStep, color: state.accentColor)
+                }
+            }
+            .offset(y: bobOffset)
+            .scaleEffect(x: state.petFacingLeft ? -1 : 1, y: 1)
+        }
+        .frame(width: 32, height: 26)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Pet Sprites (Retina-Crisp Vector Characters)
+
+struct NotchCatSprite: View {
+    let action: NotchPetAction
+    let step: Int
+
+    var body: some View {
+        ZStack {
+            // Tail
+            Path { path in
+                path.move(to: CGPoint(x: 4, y: 14))
+                let tailWiggle = CGFloat(step % 2 == 0 ? -3 : 3)
+                path.addQuadCurve(to: CGPoint(x: 0, y: 6 + tailWiggle), control: CGPoint(x: 0, y: 12))
+            }
+            .stroke(Color(hex: "#FF9F0A"), style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+
+            // Body
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(hex: "#FFA524"))
+                .frame(width: 20, height: 14)
+                .offset(x: 2, y: 4)
+
+            // Ears
+            HStack(spacing: 8) {
+                ZStack {
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: 4))
+                        path.addLine(to: CGPoint(x: 3.5, y: -1))
+                        path.addLine(to: CGPoint(x: 7, y: 4))
+                        path.closeSubpath()
+                    }
+                    .fill(Color(hex: "#E07B00"))
+                    Path { path in
+                        path.move(to: CGPoint(x: 1.5, y: 4))
+                        path.addLine(to: CGPoint(x: 3.5, y: 1))
+                        path.addLine(to: CGPoint(x: 5.5, y: 4))
+                        path.closeSubpath()
+                    }
+                    .fill(Color(hex: "#FFB5BA"))
+                }
+                .frame(width: 7, height: 5)
+
+                ZStack {
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: 4))
+                        path.addLine(to: CGPoint(x: 3.5, y: -1))
+                        path.addLine(to: CGPoint(x: 7, y: 4))
+                        path.closeSubpath()
+                    }
+                    .fill(Color(hex: "#E07B00"))
+                    Path { path in
+                        path.move(to: CGPoint(x: 1.5, y: 4))
+                        path.addLine(to: CGPoint(x: 3.5, y: 1))
+                        path.addLine(to: CGPoint(x: 5.5, y: 4))
+                        path.closeSubpath()
+                    }
+                    .fill(Color(hex: "#FFB5BA"))
+                }
+                .frame(width: 7, height: 5)
+            }
+            .offset(x: 4, y: -3)
+
+            // Face (Eyes & Whiskers)
+            if action == .sleeping {
+                HStack(spacing: 4) {
+                    Text("⌒").font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.85))
+                    Text("⌒").font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.85))
+                }
+                .offset(x: 5, y: 1)
+            } else {
+                HStack(spacing: 5) {
+                    Circle().fill(Color.black).frame(width: 2.2, height: 2.2)
+                    Circle().fill(Color.black).frame(width: 2.2, height: 2.2)
+                }
+                .offset(x: 5, y: 2)
+
+                Circle().fill(Color(hex: "#FF7B88")).frame(width: 1.5, height: 1.5)
+                    .offset(x: 5, y: 4.5)
+            }
+
+            // Paws
+            HStack(spacing: action == .walking ? (step % 2 == 0 ? 9 : 5) : 7) {
+                Capsule().fill(Color.white).frame(width: 3.5, height: 3)
+                Capsule().fill(Color.white).frame(width: 3.5, height: 3)
+            }
+            .offset(x: 3, y: 11)
+        }
+        .frame(width: 26, height: 20)
+    }
+}
+
+struct NotchDogSprite: View {
+    let action: NotchPetAction
+    let step: Int
+
+    var body: some View {
+        ZStack {
+            // Wagging tail
+            Path { path in
+                path.move(to: CGPoint(x: 3, y: 13))
+                let wag = CGFloat(step % 2 == 0 ? -4 : 4)
+                path.addLine(to: CGPoint(x: -2 + wag, y: 6))
+            }
+            .stroke(Color(hex: "#C68A4C"), style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+
+            // Body
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(hex: "#DE9F5D"))
+                .frame(width: 21, height: 14)
+                .offset(x: 2, y: 4)
+
+            // Floppy ears
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(hex: "#9E622B"))
+                    .frame(width: 3.5, height: 7)
+                    .rotationEffect(.degrees(step % 2 == 0 ? -10 : 0))
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(hex: "#9E622B"))
+                    .frame(width: 3.5, height: 7)
+                    .rotationEffect(.degrees(step % 2 == 0 ? 0 : 10))
+            }
+            .offset(x: 4, y: 1)
+
+            // Face
+            if action == .sleeping {
+                HStack(spacing: 4) {
+                    Text("-").font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.85))
+                    Text("-").font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.85))
+                }
+                .offset(x: 6, y: 1)
+            } else {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.black).frame(width: 2.2, height: 2.2)
+                    Circle().fill(Color.black).frame(width: 2.2, height: 2.2)
+                }
+                .offset(x: 6, y: 2)
+
+                Circle().fill(Color.black).frame(width: 2.5, height: 2)
+                    .offset(x: 8.5, y: 4.5)
+                if action == .happy || action == .dancing {
+                    Capsule().fill(Color(hex: "#FF5E7E")).frame(width: 2.5, height: 3.5)
+                        .offset(x: 8.5, y: 7)
+                }
+            }
+
+            // Paws
+            HStack(spacing: action == .walking ? (step % 2 == 0 ? 9 : 5) : 7) {
+                Capsule().fill(Color(hex: "#9E622B")).frame(width: 3.5, height: 3)
+                Capsule().fill(Color(hex: "#9E622B")).frame(width: 3.5, height: 3)
+            }
+            .offset(x: 3, y: 11)
+        }
+        .frame(width: 26, height: 20)
+    }
+}
+
+struct NotchDuckSprite: View {
+    let action: NotchPetAction
+    let step: Int
+
+    var body: some View {
+        ZStack {
+            // Body
+            Circle()
+                .fill(Color(hex: "#FFD60A"))
+                .frame(width: 17, height: 15)
+                .offset(x: 0, y: 3)
+
+            // Wing
+            Ellipse()
+                .fill(Color(hex: "#FFC300"))
+                .frame(width: 8, height: 6)
+                .rotationEffect(.degrees(step % 2 == 0 ? -12 : 5))
+                .offset(x: -2, y: 4)
+
+            // Head
+            Circle()
+                .fill(Color(hex: "#FFD60A"))
+                .frame(width: 12, height: 12)
+                .offset(x: 6, y: -2)
+
+            // Eye
+            if action == .sleeping {
+                Text("-").font(.system(size: 6, weight: .bold)).foregroundColor(.black)
+                    .offset(x: 7, y: -3)
+            } else {
+                Circle().fill(Color.black).frame(width: 2, height: 2)
+                    .offset(x: 7.5, y: -3)
+            }
+
+            // Orange Beak
+            Path { path in
+                path.move(to: CGPoint(x: 10, y: -1))
+                path.addLine(to: CGPoint(x: 15, y: 1))
+                path.addLine(to: CGPoint(x: 10, y: 3))
+                path.closeSubpath()
+            }
+            .fill(Color(hex: "#FF6B00"))
+
+            // Orange feet
+            HStack(spacing: step % 2 == 0 ? 5 : 7) {
+                Capsule().fill(Color(hex: "#FF6B00")).frame(width: 4, height: 2.5)
+                Capsule().fill(Color(hex: "#FF6B00")).frame(width: 4, height: 2.5)
+            }
+            .offset(x: 2, y: 11)
+        }
+        .frame(width: 26, height: 20)
+        .rotationEffect(.degrees(action == .walking ? (step % 2 == 0 ? -5 : 5) : 0))
+    }
+}
+
+struct NotchOrbSprite: View {
+    let action: NotchPetAction
+    let step: Int
+    let color: Color
+
+    var body: some View {
+        let isSquished = (step % 2 == 0) && (action == .walking || action == .dancing)
+        ZStack {
+            // Glowing jelly slime body
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [color.opacity(0.95), color.opacity(0.65)],
+                        center: .topLeading,
+                        startRadius: 2,
+                        endRadius: 18
+                    )
+                )
+                .frame(width: 18, height: 18)
+                .scaleEffect(x: isSquished ? 1.18 : 0.92, y: isSquished ? 0.85 : 1.10)
+                .shadow(color: color.opacity(0.55), radius: 4, x: 0, y: 0)
+
+            // Specular sheen
+            Circle()
+                .fill(Color.white.opacity(0.65))
+                .frame(width: 4.5, height: 3)
+                .offset(x: -4, y: -4)
+
+            // Eyes & Blush
+            if action == .sleeping {
+                HStack(spacing: 4) {
+                    Text("◡").font(.system(size: 7, weight: .bold)).foregroundColor(.white)
+                    Text("◡").font(.system(size: 7, weight: .bold)).foregroundColor(.white)
+                }
+                .offset(y: 1)
+            } else {
+                HStack(spacing: 5) {
+                    Circle().fill(Color.white).frame(width: 2.5, height: 2.5)
+                    Circle().fill(Color.white).frame(width: 2.5, height: 2.5)
+                }
+                .offset(y: 0.5)
+
+                HStack(spacing: 11) {
+                    Circle().fill(Color.pink.opacity(0.65)).frame(width: 2.5, height: 1.5)
+                    Circle().fill(Color.pink.opacity(0.65)).frame(width: 2.5, height: 1.5)
+                }
+                .offset(y: 3)
+            }
+        }
+        .frame(width: 24, height: 20)
     }
 }
