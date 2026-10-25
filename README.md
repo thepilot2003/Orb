@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com"><img src="https://img.shields.io/badge/version-1.05-teal?style=flat-square" alt="v1.05" /></a>
+  <a href="https://github.com"><img src="https://img.shields.io/badge/version-1.06-teal?style=flat-square" alt="v1.06" /></a>
   <a href="https://github.com"><img src="https://img.shields.io/badge/macOS-13.0%2B-blue?style=flat-square&logo=apple&logoColor=white" alt="macOS 13.0+" /></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Swift-5.10-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.10" /></a>
   <a href="https://developer.apple.com/metal/"><img src="https://img.shields.io/badge/Renderer-Metal%20%2B%20SwiftUI-007AFF?style=flat-square" alt="Metal + SwiftUI" /></a>
@@ -24,8 +24,8 @@
 Orb transforms the static black camera notch on your MacBook Pro or MacBook Air into an elegant, interactive **Dynamic Island** with real-time Apple Music synchronized karaoke lyrics, native calendar schedule integration, liquid glass refraction, and an adorable **Animated Notch Pet Companion** featuring 5 unique pets, a 19-piece wardrobe boutique, live feeding snacks, and music-reactive behaviors!
 
 <p align="center">
-  <a href="dist/Orb-v1.05.dmg">
-    <img src="https://img.shields.io/badge/Download-Orb%20v1.05%20(DMG)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download Orb DMG" />
+  <a href="dist/Orb-v1.06.dmg">
+    <img src="https://img.shields.io/badge/Download-Orb%20v1.06%20(DMG)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download Orb DMG" />
   </a>
 </p>
 
@@ -107,7 +107,7 @@ Orb/
 ## 📦 Installation & Download
 
 ### Option 1: Download Pre-Built DMG (Recommended)
-1. Download **[`Orb-v1.05.dmg`](dist/Orb-v1.05.dmg)** or grab the latest release from the [Releases](https://github.com/thepilot2003/Orb/releases) page.
+1. Download **[`Orb-v1.06.dmg`](dist/Orb-v1.06.dmg)** or grab the latest release from the [Releases](https://github.com/thepilot2003/Orb/releases) page.
 2. Open the DMG and drag **Orb.app** into your **Applications** folder.
 3. Launch Orb. Click the menu bar icon (`Orb`) and select **Settings...** (`⌘,`) to customize your preferences.
 
@@ -134,8 +134,8 @@ chmod +x build_release.sh
 
 The script compiles the application, ad-hoc codesigns it, and generates:
 - `dist/Orb.app` (Ready to run)
-- `dist/Orb-v1.05.dmg` (Installer disk image)
-- `dist/Orb-v1.05-macOS.zip` (Zip archive)
+- `dist/Orb-v1.06.dmg` (Installer disk image)
+- `dist/Orb-v1.06-macOS.zip` (Zip archive)
 
 ---
 

@@ -10,7 +10,7 @@ struct CompactPanel: View {
             // Top notch row: Album Art on left, Waveform on right (aligned with the notch wings)
             HStack(spacing: 8) {
                 ArtworkView(state: state, size: 22, corner: 6)
-                    .padding(.leading, 12)
+                    .padding(.leading, 20)
 
                 Spacer(minLength: 4)
 
@@ -18,7 +18,7 @@ struct CompactPanel: View {
                              color: state.color(for: state.waveformColor),
                              isPlaying: state.playback == .playing,
                              width: 18, height: 13, barCount: 4)
-                    .padding(.trailing, 12)
+                    .padding(.trailing, 20)
             }
             .frame(height: state.baseHeight)
 

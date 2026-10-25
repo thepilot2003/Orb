@@ -137,9 +137,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupAppIcon()
 
         if settingsWindow == nil {
-            let hosting = NSHostingController(rootView: ContentView())
-            let window = NSWindow(contentViewController: hosting)
-            window.styleMask = [.titled, .closable, .miniaturizable]
+            let initialSize = NSSize(width: 680, height: 640)
+            let hostingView = OrbHostingView(rootView: ContentView())
+            hostingView.frame = NSRect(origin: .zero, size: initialSize)
+            hostingView.autoresizingMask = [.width, .height]
+            if #available(macOS 13.0, *) { hostingView.sizingOptions = [] }
+
+            let window = NSWindow(
+                contentRect: NSRect(origin: .zero, size: initialSize),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            window.contentView = hostingView
             window.title = "Orb Settings"
             window.titleVisibility = .visible
             window.titlebarAppearsTransparent = false
@@ -147,14 +157,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.backgroundColor = NSColor(red: 0.10, green: 0.10, blue: 0.11, alpha: 1)
-            let initialSize = NSSize(width: 680, height: 640)
-            window.setContentSize(initialSize)
             window.minSize = NSSize(width: 600, height: 500)
             window.maxSize = NSSize(width: 850, height: 850)
             window.showsResizeIndicator = true
-            if #available(macOS 13.0, *) {
-                hosting.sizingOptions = []
-            }
             window.center()
             settingsWindow = window
         }

@@ -135,7 +135,7 @@ final class PetManager: ObservableObject {
 
     func computedPetX(currentNotchWidth: CGFloat) -> CGFloat {
         let halfIsland = (currentNotchWidth + 20) / 2
-        let baseGap: CGFloat = 20
+        let baseGap: CGFloat = 36
         let side: NotchPetPlacement = (placement == .both) ? petActiveSide : placement
         switch side {
         case .left:

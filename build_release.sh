@@ -5,7 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${PROJECT_DIR}/build"
 DIST_DIR="${PROJECT_DIR}/dist"
 APP_NAME="Orb"
-APP_VERSION="1.05"
+APP_VERSION="1.06"
 SCHEME="Orb"
 
 echo "==> Building ${APP_NAME} v${APP_VERSION} in Release configuration..."

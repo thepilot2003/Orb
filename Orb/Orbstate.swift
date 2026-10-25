@@ -688,7 +688,7 @@ final class OrbState: ObservableObject {
     var currentNotchWidth: CGFloat {
         if isExpanded { return expandedWidth }
         if isCompactDroppedDown { return bannerWidth }
-        return playback == .stopped ? baseWidth : baseWidth + 84
+        return playback == .stopped ? baseWidth : baseWidth + 104
     }
 
     var currentNotchHeight: CGFloat {

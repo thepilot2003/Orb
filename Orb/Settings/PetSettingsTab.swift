@@ -82,6 +82,7 @@ struct PetSettingsTab: View {
                                             RoundedRectangle(cornerRadius: 6)
                                                 .stroke(isSel ? orbTeal : Color.clear, lineWidth: 1)
                                         )
+                                        .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -120,6 +121,7 @@ struct PetSettingsTab: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(isSelected ? orbTeal : Color.clear, lineWidth: 1)
                             )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -196,6 +198,7 @@ struct PetSettingsTab: View {
                             .padding(.vertical, 4)
                             .background(Color.white.opacity(0.08))
                             .cornerRadius(6)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
@@ -209,6 +212,7 @@ struct PetSettingsTab: View {
                             .padding(.vertical, 4)
                             .background(Color.white.opacity(0.08))
                             .cornerRadius(6)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
@@ -222,6 +226,7 @@ struct PetSettingsTab: View {
                             .padding(.vertical, 4)
                             .background(Color.white.opacity(0.08))
                             .cornerRadius(6)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -260,6 +265,7 @@ struct PetSettingsTab: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(isSelected ? orbTeal : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
                             )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -277,6 +283,7 @@ struct PetSettingsTab: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+                    .labelsHidden()
                     .frame(width: 220)
                 }
                 .padding(.top, 6)
@@ -346,6 +353,7 @@ struct PetSettingsTab: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
                             )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -390,6 +398,7 @@ struct PetSettingsTab: View {
                                     RoundedRectangle(cornerRadius: 6)
                                         .stroke(isSelected ? orbTeal : Color.clear, lineWidth: 1)
                                 )
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -429,6 +438,7 @@ struct PetSettingsTab: View {
                                     RoundedRectangle(cornerRadius: 6)
                                         .stroke(isSelected ? orbTeal : Color.clear, lineWidth: 1)
                                 )
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -478,6 +488,7 @@ struct PetSettingsTab: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+                    .labelsHidden()
                     .padding(.top, 2)
                 }
 

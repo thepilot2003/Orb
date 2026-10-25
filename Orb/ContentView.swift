@@ -216,6 +216,7 @@ struct ContentView: View {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(isSelected ? Color.white.opacity(0.14) : Color.clear)
                     )
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(tab.rawValue)
@@ -309,6 +310,7 @@ struct ContentView: View {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .stroke(isSelected ? orbTeal.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
                     )
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -346,6 +348,7 @@ struct ContentView: View {
                         .strokeBorder(Color.white.opacity(selected ? 0.95 : 0), lineWidth: 2)
                         .padding(-4)
                 )
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .help(choice.title)
@@ -645,6 +648,7 @@ struct ContentView: View {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(isSelected ? Color.white.opacity(0.18) : Color.clear)
                         )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }

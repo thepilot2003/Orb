@@ -5,6 +5,14 @@ All notable changes to the Orb project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.06] - 2026-10-25
+
+### Fixed
+- **Album Artwork & Waveform Clipping**: Fixed corner-clipping in the compact Dynamic Island by widening playback wings to `baseWidth + 104` and setting comfortable 20pt leading/trailing padding, keeping album art and waveform clear of the notch curve.
+- **Companion Overlap & Collision**: Increased companion spacing `baseGap` to 36pt and aligned transition curves with `OrbMotion.morph`, ensuring pets perch gracefully beside the notch without ever clipping into or under the dynamic island.
+- **Settings Squished Text Bug**: Added `.labelsHidden()` to macOS segmented pickers in Settings > Notch Pet, eliminating the vertically broken/wrapped "Activity" and "Weather Condition" label glitches.
+- **Settings Click Responsiveness**: Added `.contentShape(Rectangle())` to all settings cards, tabs, and wardrobe options, and enabled `acceptsFirstMouse` on the settings window so clicks work instantly on the first try across the entire button surface.
+
 ## [1.05] - 2026-10-25
 
 ### Fixed

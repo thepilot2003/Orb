@@ -47,7 +47,7 @@ struct NotchPetContainerView: View {
             .buttonStyle(.plain)
             .offset(x: petX, y: petY)
             .rotationEffect(.degrees(isSpider ? petManager.spiderSwingAngle : 0), anchor: .top)
-            .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.82), value: petX)
+            .animation(OrbMotion.morph, value: petX)
             .animation(.spring(response: 0.35, dampingFraction: 0.78), value: petY)
         }
     }
