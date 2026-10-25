@@ -5,7 +5,16 @@ All notable changes to the Orb project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.06] - 2026-10-25
+## [1.07] - 2026-10-25
+
+### Added
+- **Swipe to Change Songs (Music Player)**: Added intuitive horizontal swipe gestures to change tracks directly on the Dynamic Island in both compact and expanded modes. Includes trackpad two-finger horizontal flick support with haptic feedback. Configurable via a dedicated toggle in Settings > Media & Lyrics.
+- **MagSafe Notch Charging Glow (Independent System Feature)**: Wraps a breathtaking electric glowing neon contour line around the physical camera notch and island whenever your MacBook is connected to power. Features rhythmic breathing illumination with selectable color themes (Signature MagSafe Green, Electric Cyan, Warm Amber, or Island Accent). Functions 100% reliably whether the Notch Pet is enabled or disabled.
+- **Interactive Up Next Queue**: Completely overhauled Up Next with smooth dynamic island expansion (`max(330, baseHeight + 290)`), native scrollable queue list (`145pt`), clickable song cards that trigger playback with haptic feedback, and artist catalog discovery.
+
+### Fixed
+- **Up Next Layout Clipping & Squishing**: Fixed critical bug where opening the Up Next queue did not expand the island height, causing upcoming songs to be crushed against the playback controls bar and cut off in half.
+- **Queue Duplicate Search Results**: Revamped queue search algorithm to query rich artist/album catalogs, removing duplicate acoustic/remix titles and delivering 8-12 diverse upcoming songs.
 
 ### Fixed
 - **Album Artwork & Waveform Clipping**: Fixed corner-clipping in the compact Dynamic Island by widening playback wings to `baseWidth + 104` and setting comfortable 20pt leading/trailing padding, keeping album art and waveform clear of the notch curve.

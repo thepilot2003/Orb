@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import Combine
 import EventKit
+import IOKit.ps
 
 // MARK: - Option protocol (lets every settings enum share the same picker code)
 
@@ -454,6 +455,22 @@ final class OrbState: ObservableObject {
         didSet { UserDefaults.standard.set(scrollLongNames, forKey: "scrollLongNames") }
     }
 
+    // Playback Gestures
+    @Published var swipeToChangeSongs: Bool = Prefs.bool("swipeToChangeSongs", true) {
+        didSet { UserDefaults.standard.set(swipeToChangeSongs, forKey: "swipeToChangeSongs") }
+    }
+
+    // MagSafe Notch Charging Glow
+    @Published var chargingGlowEnabled: Bool = Prefs.bool("chargingGlowEnabled", true) {
+        didSet { UserDefaults.standard.set(chargingGlowEnabled, forKey: "chargingGlowEnabled") }
+    }
+    @Published var chargingColorChoice: String = UserDefaults.standard.string(forKey: "chargingColorChoice") ?? "magsafe" {
+        didSet { UserDefaults.standard.set(chargingColorChoice, forKey: "chargingColorChoice") }
+    }
+    @Published var isCharging: Bool = false
+    @Published var batteryPercentage: Int = 100
+    private var powerTimer: Timer?
+
     // Motion Artwork (Apple Music animated album art)
     @Published var motionArtworkEnabled: Bool = Prefs.bool("motionArtworkEnabled", true) {
         didSet {
@@ -532,6 +549,14 @@ final class OrbState: ObservableObject {
         calendarTimer = calTimer
         if showCalendar { setupCalendar() }
         if showNotchPet { PetManager.shared.setupTimers() }
+
+        // Power & Charging Monitor (Always active regardless of Notch Pet toggle)
+        checkPowerSource()
+        let pTimer = Timer(timeInterval: 2.5, repeats: true) { [weak self] _ in
+            self?.checkPowerSource()
+        }
+        RunLoop.main.add(pTimer, forMode: .common)
+        powerTimer = pTimer
     }
 
     // MARK: Derived values
@@ -673,6 +698,9 @@ final class OrbState: ObservableObject {
     // Open size. Everything is derived from the detected notch, so each MacBook gets a matching island.
     var expandedWidth: CGFloat { max(380, baseWidth + 180) }
     var expandedHeight: CGFloat {
+        if isQueueOpen {
+            return max(330, baseHeight + 290)
+        }
         let hasLyrics = showLyricsExpanded && !lyrics.isEmpty
         return hasLyrics ? max(285, baseHeight + 250) : max(215, baseHeight + 180)
     }
@@ -1755,8 +1783,9 @@ final class OrbState: ObservableObject {
     }
 
     private func fetchRelatedQueue(title: String, artist: String) {
-        guard let encoded = "\(artist) \(title)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://itunes.apple.com/search?term=\(encoded)&entity=song&limit=9") else { return }
+        let query = !artist.isEmpty ? artist : title
+        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://itunes.apple.com/search?term=\(encoded)&entity=song&limit=15") else { return }
 
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let self = self, let data = data else { return }
@@ -1764,11 +1793,17 @@ final class OrbState: ObservableObject {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let results = json["results"] as? [[String: Any]] {
                     var list: [QueueTrack] = []
+                    var seen = Set<String>()
+                    let cleanCurrentTitle = title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
                     for (idx, r) in results.enumerated() {
                         let name = r["trackName"] as? String ?? ""
                         let art = r["artistName"] as? String ?? ""
                         let dur = (r["trackTimeMillis"] as? Double ?? 0) / 1000.0
-                        if !name.isEmpty && name.lowercased() != title.lowercased() {
+                        let lowerName = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+                        if !name.isEmpty && !lowerName.starts(with: cleanCurrentTitle) && !seen.contains(lowerName) {
+                            seen.insert(lowerName)
                             list.append(QueueTrack(id: "\(idx)-\(name)", title: name, artist: art, duration: dur))
                         }
                     }
@@ -1778,6 +1813,82 @@ final class OrbState: ObservableObject {
                 }
             } catch {}
         }.resume()
+    }
+
+    func playQueueTrack(_ track: QueueTrack) {
+        haptic()
+        if activeSource == .music {
+            scriptQueue.async { [weak self] in
+                guard let self = self else { return }
+                let safeTitle = track.title.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+                let script = """
+                tell application id "com.apple.Music"
+                    try
+                        set foundTracks to (every track of current playlist whose name is "\(safeTitle)")
+                        if (count of foundTracks) > 0 then
+                            play item 1 of foundTracks
+                        else
+                            set foundTracks to (every track whose name is "\(safeTitle)")
+                            if (count of foundTracks) > 0 then
+                                play item 1 of foundTracks
+                            else
+                                next track
+                            end if
+                        end if
+                    on error
+                        next track
+                    end try
+                end tell
+                """
+                _ = self.run(script)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.refresh() }
+            }
+        } else if activeSource == .spotify {
+            scriptQueue.async { [weak self] in
+                guard let self = self else { return }
+                let safeTitle = track.title.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+                let script = """
+                tell application "Spotify"
+                    try
+                        next track
+                    end try
+                end tell
+                """
+                _ = self.run(script)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.refresh() }
+            }
+        } else {
+            skipNext()
+        }
+    }
+
+    // MARK: - Power & Charging Monitor
+    func checkPowerSource() {
+        guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let list = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef] else {
+            return
+        }
+        var charging = false
+        var percent = 100
+        for ps in list {
+            if let desc = IOPSGetPowerSourceDescription(blob, ps)?.takeUnretainedValue() as? [String: Any] {
+                let isCh = desc[kIOPSIsChargingKey] as? Bool ?? false
+                let powerState = desc[kIOPSPowerSourceStateKey] as? String
+                let curCap = desc[kIOPSCurrentCapacityKey] as? Int ?? 100
+                let maxCap = desc[kIOPSMaxCapacityKey] as? Int ?? 100
+                percent = maxCap > 0 ? Int((Double(curCap) / Double(maxCap)) * 100) : 100
+                if isCh || powerState == kIOPSACPowerValue {
+                    charging = true
+                    break
+                }
+            }
+        }
+        if isCharging != charging {
+            isCharging = charging
+        }
+        if batteryPercentage != percent {
+            batteryPercentage = percent
+        }
     }
 
     func toggleShuffle() {

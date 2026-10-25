@@ -4,6 +4,7 @@ import SwiftUI
 
 struct CompactPanel: View {
     @ObservedObject var state = OrbState.shared
+    @State private var dragOffset: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,6 +33,28 @@ struct CompactPanel: View {
                     ))
             }
         }
+        .offset(x: dragOffset)
+        .simultaneousGesture(
+            state.swipeToChangeSongs && state.playback != .stopped ?
+                DragGesture(minimumDistance: 15)
+                    .onChanged { value in
+                        dragOffset = value.translation.width * 0.35
+                    }
+                    .onEnded { value in
+                        let threshold: CGFloat = 30
+                        if value.translation.width < -threshold {
+                            state.haptic()
+                            state.skipNext()
+                        } else if value.translation.width > threshold {
+                            state.haptic()
+                            state.skipPrevious()
+                        }
+                        withAnimation(OrbMotion.quick) {
+                            dragOffset = 0
+                        }
+                    }
+            : nil
+        )
         .animation(OrbMotion.peek, value: state.isHovered)
         .animation(OrbMotion.content, value: state.trackID)
     }
@@ -116,66 +139,103 @@ struct QueuePanel: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("Up Next")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Image(systemName: "list.bullet")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(state.accentColor)
+                    Text("Up Next")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+
                 Spacer()
+
                 Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    state.haptic()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         state.isQueueOpen = false
                     }
                 }) {
                     Text("Done")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundColor(state.accentColor)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(state.accentColor.opacity(0.14)))
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
             }
             .padding(.horizontal, 24)
 
             if state.upNextQueue.isEmpty {
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
+                    Image(systemName: "music.note.list")
+                        .font(.system(size: 20))
+                        .foregroundColor(state.accentColor.opacity(0.7))
                     Text("No upcoming queue loaded")
                         .font(.system(size: 11.5, weight: .medium, design: .rounded))
                         .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 70)
+                .frame(height: 145)
             } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 4) {
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVStack(spacing: 5) {
                         ForEach(state.upNextQueue) { track in
-                            HStack(spacing: 8) {
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(state.accentColor)
-
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(track.title)
-                                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                    Text(track.artist)
-                                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                                        .foregroundColor(Color.white.opacity(0.65))
-                                        .lineLimit(1)
-                                }
-                                Spacer()
-                                Text(OrbState.format(track.duration))
-                                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                                    .foregroundColor(Color.white.opacity(0.45))
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.06)))
+                            QueueTrackRow(state: state, track: track)
                         }
                     }
                     .padding(.horizontal, 22)
+                    .padding(.vertical, 2)
                 }
-                .frame(maxHeight: 75)
+                .frame(height: 145)
             }
         }
         .transition(.opacity)
+    }
+}
+
+private struct QueueTrackRow: View {
+    @ObservedObject var state: OrbState
+    let track: QueueTrack
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: {
+            state.playQueueTrack(track)
+        }) {
+            HStack(spacing: 10) {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(isHovered ? state.accentColor : Color.white.opacity(0.35))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(track.artist)
+                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                        .foregroundColor(Color.white.opacity(0.65))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                Text(OrbState.format(track.duration))
+                    .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.45))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .frame(minHeight: 40)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.05))
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 
@@ -183,6 +243,7 @@ struct QueuePanel: View {
 
 struct NowPlayingPanel: View {
     @ObservedObject var state: OrbState
+    @State private var dragOffset: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -214,6 +275,28 @@ struct NowPlayingPanel: View {
                              width: 24, height: 16, barCount: 5)
             }
             .padding(.horizontal, 24)
+            .offset(x: dragOffset)
+            .simultaneousGesture(
+                state.swipeToChangeSongs ?
+                    DragGesture(minimumDistance: 15)
+                        .onChanged { value in
+                            dragOffset = value.translation.width * 0.35
+                        }
+                        .onEnded { value in
+                            let threshold: CGFloat = 35
+                            if value.translation.width < -threshold {
+                                state.haptic()
+                                state.skipNext()
+                            } else if value.translation.width > threshold {
+                                state.haptic()
+                                state.skipPrevious()
+                            }
+                            withAnimation(OrbMotion.quick) {
+                                dragOffset = 0
+                            }
+                        }
+                : nil
+            )
 
             if state.isQueueOpen {
                 Spacer(minLength: 6)

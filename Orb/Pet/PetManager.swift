@@ -400,7 +400,7 @@ final class PetManager: ObservableObject {
         }
     }
 
-    // MARK: - IOKit Power Source Check (Battery Snack)
+    // MARK: - Power Source Check (Battery Snack)
 
     func checkPowerSource() {
         guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),

@@ -409,6 +409,35 @@ struct ContentView: View {
                           isOn: $state.trackBanner)
             }
 
+            SettingsCard("MagSafe Charging Border", icon: "bolt.fill") {
+                toggleRow("Notch charging line",
+                          detail: "Wraps an animated electric glow line around the physical notch while your Mac is charging.",
+                          isOn: $state.chargingGlowEnabled)
+
+                if state.chargingGlowEnabled {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Glow Color")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(Color.white.opacity(0.9))
+                            Text("Signature MagSafe electric green or custom neon hue.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                        Picker("Charging Color", selection: $state.chargingColorChoice) {
+                            Text("MagSafe").tag("magsafe")
+                            Text("Cyan").tag("cyan")
+                            Text("Amber").tag("amber")
+                            Text("Accent").tag("accent")
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 250)
+                    }
+                }
+            }
+
             SettingsCard("Display Elements", icon: "capsule.portrait") {
                 toggleRow("Keep song name visible",
                           detail: "Keep the track title visible next to the island even when collapsed.",
@@ -457,6 +486,12 @@ struct ContentView: View {
 
     private var mediaLyricsTab: some View {
         VStack(spacing: 16) {
+            SettingsCard("Playback Gestures", icon: "hand.draw") {
+                toggleRow("Swipe to change songs",
+                          detail: "Swipe left or right on the Dynamic Island with your trackpad or mouse to skip between songs.",
+                          isOn: $state.swipeToChangeSongs)
+            }
+
             SettingsCard("Lyrics Experience", icon: "quote.bubble.fill") {
                 toggleRow("Show lyrics below notch",
                           detail: "Synchronized karaoke lyrics stream in real time right below the notch in compact mode.",

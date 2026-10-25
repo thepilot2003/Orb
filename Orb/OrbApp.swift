@@ -39,6 +39,33 @@ final class OrbNotchPanel: NSPanel {
 final class OrbHostingView<Content: View>: NSHostingView<Content> {
     // Lets the first click hit a button even though the panel never becomes key.
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    private var lastSwipeTime: Date = .distantPast
+
+    override func scrollWheel(with event: NSEvent) {
+        if OrbState.shared.swipeToChangeSongs && OrbState.shared.playback != .stopped {
+            let dx = event.scrollingDeltaX
+            let dy = event.scrollingDeltaY
+            if abs(dx) > 22 && abs(dx) > abs(dy) * 1.4 {
+                let now = Date()
+                if now.timeIntervalSince(lastSwipeTime) > 0.5 {
+                    lastSwipeTime = now
+                    if dx < -16 {
+                        // Swiped Left -> Next Track
+                        OrbState.shared.haptic()
+                        OrbState.shared.skipNext()
+                        return
+                    } else if dx > 16 {
+                        // Swiped Right -> Previous Track
+                        OrbState.shared.haptic()
+                        OrbState.shared.skipPrevious()
+                        return
+                    }
+                }
+            }
+        }
+        super.scrollWheel(with: event)
+    }
 }
 
 // MARK: - App delegate
@@ -54,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var cancellables = Set<AnyCancellable>()
 
     // Roomy canvas for the open island plus its shadow and beside-notch companions.
-    private let canvasSize = NSSize(width: 680, height: 360)
+    private let canvasSize = NSSize(width: 720, height: 420)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
