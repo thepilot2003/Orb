@@ -5,6 +5,21 @@ All notable changes to the Orb project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.08] - 2026-10-26
+
+### Fixed
+- **System-wide Now Playing & YouTube Detection**:
+  - Fixed issue where MediaRemote failed to detect web audio/video playing on YouTube in Safari and Google Chrome.
+  - Properly bound `MRMediaRemoteGetNowPlayingApplicationPlaybackState` to determine live playback state even when rate is 0.
+  - Repaired `MRClient` object property extraction (`parentApplicationBundleIdentifier`, `displayName`, `representedBundleID`) which was previously failing due to incorrect Dictionary casting.
+  - Added continuous 1.5s background polling and system-wide DistributedNotificationCenter observers so Orb never falls asleep when media plays outside Music/Spotify.
+  - Added automatic browser tab fallback for Safari, Google Chrome, Arc, Brave, and Edge to parse YouTube video titles and channels.
+- **Fullscreen Notch Auto-Hiding**:
+  - Fixed bug where Orb remained visible over fullscreen videos and apps even when "Hide in fullscreen" was enabled in Settings.
+  - Adjusted fullscreen detection geometry to account for MacBook camera notch displays where fullscreen windows begin below the top bezel (`safeAreaInsets.top`).
+  - Broadened window layer scanning (layers 0–3) to catch HTML5 fullscreen video players (YouTube fullscreen) and full-screen games.
+  - Accelerated visibility evaluation timer to 0.6s for immediate hiding upon entering fullscreen and instant reappearance upon exiting.
+
 ## [1.07] - 2026-10-25
 
 ### Added

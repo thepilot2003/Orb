@@ -83,7 +83,8 @@ private struct NowPlayingSnapshot {
 final class MediaRemoteBridge {
     static let shared = MediaRemoteBridge()
 
-    typealias MRGetNowPlayingInfoFn = @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
+    typealias MRGetNowPlayingInfoFn = @convention(c) (DispatchQueue, @escaping (CFDictionary?) -> Void) -> Void
+    typealias MRGetPlaybackStateFn = @convention(c) (DispatchQueue, @escaping (UInt32) -> Void) -> Void
     typealias MRRegisterFn = @convention(c) (DispatchQueue) -> Void
     typealias MRGetClientFn = @convention(c) (DispatchQueue, @escaping (AnyObject?) -> Void) -> Void
     typealias MRIsPlayingFn = @convention(c) (DispatchQueue, @escaping (Bool) -> Void) -> Void
@@ -92,6 +93,7 @@ final class MediaRemoteBridge {
     typealias MRSetShuffleFn = @convention(c) (Int32) -> Void
 
     private let getInfoFn: MRGetNowPlayingInfoFn?
+    private let getStateFn: MRGetPlaybackStateFn?
     private let registerFn: MRRegisterFn?
     private let getClientFn: MRGetClientFn?
     private let isPlayingFn: MRIsPlayingFn?
@@ -102,6 +104,7 @@ final class MediaRemoteBridge {
     private init() {
         guard let handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_NOW) else {
             getInfoFn = nil
+            getStateFn = nil
             registerFn = nil
             getClientFn = nil
             isPlayingFn = nil
@@ -114,6 +117,10 @@ final class MediaRemoteBridge {
         if let sym = dlsym(handle, "MRMediaRemoteGetNowPlayingInfo") {
             getInfoFn = unsafeBitCast(sym, to: MRGetNowPlayingInfoFn.self)
         } else { getInfoFn = nil }
+
+        if let sym = dlsym(handle, "MRMediaRemoteGetNowPlayingApplicationPlaybackState") {
+            getStateFn = unsafeBitCast(sym, to: MRGetPlaybackStateFn.self)
+        } else { getStateFn = nil }
 
         if let sym = dlsym(handle, "MRMediaRemoteRegisterForNowPlayingNotifications") {
             registerFn = unsafeBitCast(sym, to: MRRegisterFn.self)
@@ -142,13 +149,20 @@ final class MediaRemoteBridge {
         registerFn?(DispatchQueue.main)
     }
 
-    func getNowPlayingInfo(completion: @escaping ([String: Any]?) -> Void) {
+    func getNowPlayingInfo(completion: @escaping ([String: Any]?, UInt32) -> Void) {
         guard let fn = getInfoFn else {
-            completion(nil)
+            completion(nil, 0)
             return
         }
-        fn(DispatchQueue.main) { info in
-            completion(info)
+        fn(DispatchQueue.global(qos: .userInitiated)) { [weak self] cfDict in
+            let dict = cfDict as? [String: Any]
+            if let getState = self?.getStateFn {
+                getState(DispatchQueue.global(qos: .userInitiated)) { state in
+                    completion(dict, state)
+                }
+            } else {
+                completion(dict, 0)
+            }
         }
     }
 
@@ -157,13 +171,18 @@ final class MediaRemoteBridge {
             completion(nil, nil)
             return
         }
-        fn(DispatchQueue.main) { client in
-            guard let dict = client as? [String: Any] else {
-                completion(nil, nil)
-                return
+        fn(DispatchQueue.global(qos: .userInitiated)) { client in
+            var bundleId: String? = nil
+            var displayName: String? = nil
+            if let dict = client as? [String: Any] {
+                bundleId = (dict["parentApplicationBundleIdentifier"] as? String) ?? (dict["bundleIdentifier"] as? String)
+                displayName = dict["displayName"] as? String
+            } else if let obj = client {
+                bundleId = (obj.value(forKey: "parentApplicationBundleIdentifier") as? String)
+                    ?? (obj.value(forKey: "representedBundleID") as? String)
+                    ?? (obj.value(forKey: "bundleIdentifier") as? String)
+                displayName = obj.value(forKey: "displayName") as? String
             }
-            let bundleId = (dict["parentApplicationBundleIdentifier"] as? String) ?? (dict["bundleIdentifier"] as? String)
-            let displayName = dict["displayName"] as? String
             completion(bundleId, displayName)
         }
     }
@@ -502,7 +521,13 @@ final class OrbState: ObservableObject {
 
         // Instant updates when the player changes track or state.
         let dnc = DistributedNotificationCenter.default()
-        for name in ["com.apple.Music.playerInfo", "com.spotify.client.PlaybackStateChanged"] {
+        for name in [
+            "com.apple.Music.playerInfo",
+            "com.spotify.client.PlaybackStateChanged",
+            "com.apple.mediaremote.nowplayinginfochanged",
+            "com.apple.mediaremote.nowplayingapplicationchanged",
+            "com.apple.mediaremote.nowplayingplaybackstatechanged"
+        ] {
             dnc.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
                 self?.refresh()
             }
@@ -521,19 +546,10 @@ final class OrbState: ObservableObject {
             }
         }
 
-        // Adaptive poll for playback progress. Common mode so it keeps firing while menus are open.
-        // Fast (2.0s) only when playing; slow (6.0s) when paused; no AppleScript when stopped.
-        var pollCounter = 0
-        let timer = Timer(timeInterval: 2.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            pollCounter += 1
-            if self.playback == .playing {
-                self.refresh()
-            } else if PlayerSource.allCases.contains(where: { $0.isRunning }) {
-                if pollCounter % 3 == 0 {
-                    self.refresh()
-                }
-            }
+        // Continual poll for playback state and progress (1.5s interval).
+        // Common mode so it keeps firing while menus or dialogs are open.
+        let timer = Timer(timeInterval: 1.5, repeats: true) { [weak self] _ in
+            self?.refresh()
         }
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
@@ -732,18 +748,19 @@ final class OrbState: ObservableObject {
         refreshInFlight = true
 
         // 1. Check system-wide MediaRemote Now Playing first (works with YouTube, Safari, Chrome, Music, Spotify, etc.)
-        MediaRemoteBridge.shared.getNowPlayingInfo { [weak self] mrInfo in
+        MediaRemoteBridge.shared.getNowPlayingInfo { [weak self] mrInfo, mrState in
             guard let self = self else { return }
 
-            if let info = mrInfo,
-               let title = info["kMRMediaRemoteNowPlayingInfoTitle"] as? String,
-               !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let artist = info["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? ""
-                let duration = (info["kMRMediaRemoteNowPlayingInfoDuration"] as? NSNumber)?.doubleValue ?? 0
-                let elapsed = (info["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? NSNumber)?.doubleValue ?? 0
-                let rate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue ?? 0
-                let artData = info["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data
-                let mrTimestamp = info["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date
+            let rawTitle = (mrInfo?["kMRMediaRemoteNowPlayingInfoTitle"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let rate = (mrInfo?["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue ?? 0
+            let isPlaying = (mrState == 1) || (rate > 0)
+
+            if !rawTitle.isEmpty {
+                let artist = (mrInfo?["kMRMediaRemoteNowPlayingInfoArtist"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let duration = max(0, (mrInfo?["kMRMediaRemoteNowPlayingInfoDuration"] as? NSNumber)?.doubleValue ?? 0)
+                let elapsed = max(0, (mrInfo?["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? NSNumber)?.doubleValue ?? 0)
+                let artData = mrInfo?["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data
+                let mrTimestamp = mrInfo?["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date
 
                 MediaRemoteBridge.shared.getNowPlayingClient { [weak self] bundleId, displayName in
                     guard let self = self else { return }
@@ -758,20 +775,21 @@ final class OrbState: ObservableObject {
                         source = .nowPlaying(app: name)
                     }
 
+                    let cleanArtist = !artist.isEmpty ? artist : (displayName ?? "Web Media")
                     let snap = NowPlayingSnapshot(
                         source: source,
-                        state: rate > 0 ? .playing : .paused,
-                        title: title,
-                        artist: artist,
+                        state: isPlaying ? .playing : .paused,
+                        title: rawTitle,
+                        artist: cleanArtist,
                         position: elapsed,
                         duration: duration,
                         shuffle: false,
                         favorited: false,
-                        trackKey: "\(title)|\(artist)",
+                        trackKey: "\(rawTitle)|\(cleanArtist)",
                         artworkURL: nil,
                         artworkData: artData,
                         positionTimestamp: mrTimestamp,
-                        playbackRate: rate
+                        playbackRate: isPlaying ? 1.0 : 0.0
                     )
 
                     DispatchQueue.main.async {
@@ -781,7 +799,7 @@ final class OrbState: ObservableObject {
                 return
             }
 
-            // 2. Fallback to AppleScript for running Music or Spotify
+            // 2. Check running desktop players (Apple Music / Spotify via AppleScript)
             self.refreshViaAppleScript()
         }
     }
@@ -790,35 +808,150 @@ final class OrbState: ObservableObject {
         scriptQueue.async { [weak self] in
             guard let self = self else { return }
             let runningSources = PlayerSource.allCases.filter { $0.isRunning }
-            if runningSources.isEmpty {
+            if !runningSources.isEmpty {
+                var snapshots: [NowPlayingSnapshot] = []
+                var denied = false
+                var notes: [String] = []
+
+                for source in runningSources {
+                    let result = self.query(source)
+                    if let code = result.errorCode {
+                        notes.append("\(source.displayName) error \(code): \(result.message ?? "")")
+                        if code == -1743 { denied = true }
+                        continue
+                    }
+                    if let snap = result.snapshot { snapshots.append(snap) }
+                }
+
+                if let playingSnap = snapshots.first(where: { $0.state == .playing }) {
+                    let debug = notes.joined(separator: " | ")
+                    DispatchQueue.main.async {
+                        self.debugInfo = debug
+                        self.apply([playingSnap], denied: denied)
+                    }
+                    return
+                } else if !snapshots.isEmpty {
+                    // Check if browser is playing YouTube before falling back to paused desktop app
+                    self.checkBrowserMedia { browserSnap in
+                        let debug = notes.joined(separator: " | ")
+                        DispatchQueue.main.async {
+                            self.debugInfo = debug
+                            if let bSnap = browserSnap {
+                                self.apply([bSnap], denied: false)
+                            } else {
+                                self.apply(snapshots, denied: denied)
+                            }
+                        }
+                    }
+                    return
+                }
+            }
+
+            // 3. Fallback: Check if Safari or Google Chrome has an active YouTube tab
+            self.checkBrowserMedia { browserSnap in
                 DispatchQueue.main.async {
-                    self.apply([], denied: false)
+                    if let bSnap = browserSnap {
+                        self.apply([bSnap], denied: false)
+                    } else {
+                        self.apply([], denied: false)
+                    }
                 }
-                return
-            }
-
-            var snapshots: [NowPlayingSnapshot] = []
-            var denied = false
-            var notes: [String] = []
-
-            for source in runningSources {
-                let result = self.query(source)
-                if let code = result.errorCode {
-                    notes.append("\(source.displayName) error \(code): \(result.message ?? "")")
-                    if code == -1743 { denied = true }
-                    continue
-                }
-                if let snap = result.snapshot { snapshots.append(snap) }
-            }
-
-            let debug = notes.joined(separator: " | ")
-
-            DispatchQueue.main.async {
-                if debug != self.debugInfo { print("[Orb] \(debug.isEmpty ? "ok" : debug)") }
-                self.debugInfo = debug
-                self.apply(snapshots, denied: denied)
             }
         }
+    }
+
+    private func checkBrowserMedia(completion: @escaping (NowPlayingSnapshot?) -> Void) {
+        // Query Safari
+        let safariScript = """
+        tell application "Safari"
+            if running then
+                repeat with w in windows
+                    try
+                        set ct to current tab of w
+                        set u to URL of ct
+                        if u contains "youtube.com/watch" or u contains "youtube.com/shorts" or u contains "music.youtube.com" then
+                            return (name of ct) & "|||Safari"
+                        end if
+                    end try
+                end repeat
+            end if
+        end tell
+        return ""
+        """
+        var res = self.run(safariScript)
+        if let out = res.output, !out.isEmpty, out.contains("|||") {
+            let parts = out.components(separatedBy: "|||")
+            var rawTitle = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            if rawTitle.hasSuffix(" - YouTube") {
+                rawTitle = String(rawTitle.dropLast(" - YouTube".count))
+            }
+            if !rawTitle.isEmpty {
+                let snap = NowPlayingSnapshot(
+                    source: .nowPlaying(app: "Safari"),
+                    state: .playing,
+                    title: rawTitle,
+                    artist: "YouTube",
+                    position: 0,
+                    duration: 0,
+                    shuffle: false,
+                    favorited: false,
+                    trackKey: "\(rawTitle)|YouTube",
+                    artworkURL: nil,
+                    artworkData: nil,
+                    positionTimestamp: nil,
+                    playbackRate: 1.0
+                )
+                completion(snap)
+                return
+            }
+        }
+
+        // Query Google Chrome
+        let chromeScript = """
+        tell application "Google Chrome"
+            if running then
+                repeat with w in windows
+                    try
+                        set at to active tab of w
+                        set u to URL of at
+                        if u contains "youtube.com/watch" or u contains "youtube.com/shorts" or u contains "music.youtube.com" then
+                            return (title of at) & "|||Google Chrome"
+                        end if
+                    end try
+                end repeat
+            end if
+        end tell
+        return ""
+        """
+        res = self.run(chromeScript)
+        if let out = res.output, !out.isEmpty, out.contains("|||") {
+            let parts = out.components(separatedBy: "|||")
+            var rawTitle = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            if rawTitle.hasSuffix(" - YouTube") {
+                rawTitle = String(rawTitle.dropLast(" - YouTube".count))
+            }
+            if !rawTitle.isEmpty {
+                let snap = NowPlayingSnapshot(
+                    source: .nowPlaying(app: "Google Chrome"),
+                    state: .playing,
+                    title: rawTitle,
+                    artist: "YouTube",
+                    position: 0,
+                    duration: 0,
+                    shuffle: false,
+                    favorited: false,
+                    trackKey: "\(rawTitle)|YouTube",
+                    artworkURL: nil,
+                    artworkData: nil,
+                    positionTimestamp: nil,
+                    playbackRate: 1.0
+                )
+                completion(snap)
+                return
+            }
+        }
+
+        completion(nil)
     }
 
     private func apply(_ snapshots: [NowPlayingSnapshot], denied: Bool) {

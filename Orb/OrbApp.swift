@@ -138,8 +138,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         workspace.addObserver(self, selector: #selector(repositionOrb),
                               name: NSWorkspace.screensDidWakeNotification, object: nil)
 
-        // Low-frequency fallback timer (workspace observers do the instant work).
-        visibilityTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { [weak self] _ in
+        // Fast-response visibility check for fullscreen transitions (HTML5 video, fullscreen spaces, games)
+        visibilityTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
             self?.evaluateVisibility()
         }
     }
@@ -400,8 +400,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    /// A normal window can never cover the menu bar area, so a layer-0 window that exactly
-    /// matches the display bounds means a fullscreen app (or game) is on screen.
+    /// Detects whether any active app, video player (e.g. YouTube in Safari/Chrome),
+    /// or space is currently occupying the screen in fullscreen.
+    /// Accounts for notch display geometry where windows begin below the top bezel.
     private static func isFullscreenAppActive(on screen: NSScreen) -> Bool {
         guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return false
@@ -412,15 +413,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return false
         }
 
+        let topInset = screen.safeAreaInsets.top
+
         for window in windows {
-            guard (window[kCGWindowLayer as String] as? Int) == 0,
+            // Check layer 0 (standard windows) up to layer 3 (fullscreen video and game overlays)
+            let layer = window[kCGWindowLayer as String] as? Int ?? -1
+            guard layer >= 0 && layer <= 3,
                   let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else { continue }
 
-            if abs(bounds.origin.x - displayBounds.origin.x) < 1,
-               abs(bounds.origin.y - displayBounds.origin.y) < 1,
-               abs(bounds.width - displayBounds.width) < 1,
-               abs(bounds.height - displayBounds.height) < 1 {
+            let ownerName = window[kCGWindowOwnerName as String] as? String ?? ""
+            if ownerName == "Orb" || ownerName == "Window Server" || ownerName == "Dock" { continue }
+
+            // Spans full display width
+            let spansWidth = abs(bounds.width - displayBounds.width) < 14
+
+            // Extends all the way to the bottom edge of the display (past normal Dock area)
+            let reachesBottom = abs(bounds.maxY - displayBounds.maxY) < 14
+
+            // Top edge is either at 0 (full display) or flush with the notch menu bar
+            let fillsTopOrNotch = bounds.origin.y <= (topInset + 8)
+
+            // Height covers the display minus at most the hardware notch height
+            let spansHeight = bounds.height >= displayBounds.height - (topInset + 18)
+
+            if spansWidth && reachesBottom && fillsTopOrNotch && spansHeight {
                 return true
             }
         }
